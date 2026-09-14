@@ -65,12 +65,15 @@
                 <summary>+ New category</summary>
                 <input type="text" th:field="*{newCategories}" placeholder="Comma-separated new categories">
             </details>
+            <a href="/categories" class="hint" style="display:inline-block;margin-top:0.5rem">Manage categories
+                &rarr;</a>
         </fieldset>
 
         <fieldset>
             <legend>Ingredients</legend>
             <table class="ingredient-rows">
                 <tr>
+                    <th>Section</th>
                     <th>Ingredient</th>
                     <th>Qty</th>
                     <th>Unit</th>
@@ -79,9 +82,11 @@
                 </tr>
                 <tbody id="ingredient-rows">
                 <tr class="ingredient-row" th:each="line, stat : *{ingredients}">
+                    <td><input type="text" class="ingredient-section" placeholder="section name"
+                               th:field="*{ingredients[__${stat.index}__].section}"></td>
                     <td class="name-cell">
                         <input type="text" class="ingredient-name" autocomplete="off"
-                               placeholder="e.g. spaghetti"
+                               placeholder="ingredient"
                                th:field="*{ingredients[__${stat.index}__].name}">
                         <input type="hidden" th:field="*{ingredients[__${stat.index}__].ingredientId}">
                         <select class="ingredient-language" hidden
@@ -106,6 +111,8 @@
 
             <template id="ingredient-row-template">
                 <tr class="ingredient-row">
+                    <td><input type="text" class="ingredient-section" placeholder="For the tofu"
+                               name="ingredients[__INDEX__].section"></td>
                     <td class="name-cell">
                         <input type="text" class="ingredient-name" autocomplete="off"
                                placeholder="e.g. spaghetti" name="ingredients[__INDEX__].name">

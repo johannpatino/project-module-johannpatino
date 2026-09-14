@@ -47,9 +47,9 @@ class RecipeControllerIT {
                 Language.EN,
                 Set.of("pasta", "dinner"),
                 List.of(
-                        new CreateRecipeIngredientRequest(null, "spaghetti", null, 400.0, "g", null),
-                        new CreateRecipeIngredientRequest(null, "guanciale", null, 150.0, "g", "diced"),
-                        new CreateRecipeIngredientRequest(null, "pecorino", null, 50.0, "g", "grated")));
+                        new CreateRecipeIngredientRequest(null, "spaghetti", null, 400.0, "g", null, null),
+                        new CreateRecipeIngredientRequest(null, "guanciale", null, 150.0, "g", "diced", null),
+                        new CreateRecipeIngredientRequest(null, "pecorino", null, 50.0, "g", "grated", null)));
 
         RecipeDto created = client.post()
                 .uri("/api/recipes")

@@ -5,5 +5,6 @@ public record RecipeIngredientDto(
         String ingredientName,
         Double quantity,
         String unit,
-        String preparation) {
+        String preparation,
+        String section) {
 }

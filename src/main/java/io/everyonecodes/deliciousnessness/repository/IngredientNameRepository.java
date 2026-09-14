@@ -15,8 +15,6 @@ public interface IngredientNameRepository extends JpaRepository<IngredientName, 
 
     List<IngredientName> findByNameIgnoreCase(String name);
 
-    List<IngredientName> findByIngredientId(Long ingredientId);
-
     @Query("""
             SELECT new io.everyonecodes.deliciousnessness.dto.IngredientSuggestionDto(
                 i.id, i.canonicalName, n.name, n.languageCode)

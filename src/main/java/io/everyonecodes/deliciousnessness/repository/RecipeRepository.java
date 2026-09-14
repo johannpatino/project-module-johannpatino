@@ -14,7 +14,7 @@ import java.util.List;
 @Repository
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
-    List<RecipeSummaryDto> findAllBy();
+    List<RecipeSummaryDto> findAllByOrderByCreatedAtDesc();
 
     @Query("""
             SELECT ri.recipe.id
@@ -25,7 +25,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             """)
     List<Long> findRecipeIdsWithAllIngredients(@Param("ingredientIds") Collection<Long> ingredientIds, @Param("requiredCount") long requiredCount);
 
-    List<RecipeSummaryDto> findByIdIn(Collection<Long> recipeIds);
+    List<RecipeSummaryDto> findByIdInOrderByCreatedAtDesc(Collection<Long> recipeIds);
 
     @Query("""
             SELECT r.id FROM Recipe r
@@ -46,4 +46,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             WHERE s IN :seasons
             """)
     List<Long> findIdsByAnySeason(@Param("seasons") Collection<Season> seasons);
+
+    List<Recipe> findByCategoriesId(Long categoryId);
 }
