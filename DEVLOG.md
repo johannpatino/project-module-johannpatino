@@ -197,3 +197,145 @@ once for each recipe's categories and once for each recipe's ingredients. I know
 the N+1 problem and that `JOIN FETCH` or `@EntityGraph` is the answer, but I haven't used either
 yet, and at 15 recipes I can't measure the difference. Noting it so I recognise it when the list
 page feels slow.
+
+---
+
+## Entry 5 — Tests, then search
+
+**Date:** 17/08/2026 – 31/08/2026
+
+**Goal:** Prove the service layer with tests, then make recipes findable by name, ingredient,
+category and season — in any combination.
+
+**Built:**
+- `src/test/resources/application-test.properties` — separate `deliciousnessness_test` database,
+  `create-drop`, seeding off
+- `IngredientServiceTest`, `CategoryServiceTest` — Mockito, no Spring context
+- `RecipeControllerIT` — `@SpringBootTest(RANDOM_PORT)` with `RestTestClient`, real HTTP
+- `Language` enum replacing the free-text language code
+- `RecipeSummaryDto` and `findAllBy()` — a class-based projection for the list
+- `RecipeService.search()` — one method for every filter combination
+- `findRecipeIdsWithAllIngredients`, `findIdsByAnyCategory`, `findIdsByAnySeason`,
+  `findIdsByNameContaining`
+- `IngredientNameRepository.searchByName` — the autocomplete query
+
+**Spring Boot 4 moved the test furniture.** `TestRestTemplate` is gone, `@MockBean` is gone.
+The replacements are `RestTestClient` and `@MockitoBean`. Most tutorials still show the old
+names, so this cost an afternoon of reading release notes rather than writing code.
+
+**The projection closed the loop from Entry 4.** `findAllBy()` returning `RecipeSummaryDto`
+selects five columns and never touches a collection, so listing recipes is one query. The N+1
+I noted last time is gone from the page that would have felt it.
+
+**"Recipes containing all of these ingredients" is not an `IN`.** `WHERE ingredient_id IN (...)`
+is OR — any one match qualifies the recipe. To get AND I group by recipe and keep the ones whose
+distinct ingredient count equals the number I asked for:
+
+```
+GROUP BY ri.recipe.id
+HAVING COUNT(DISTINCT ri.ingredient.id) = :requiredCount
+```
+
+Each filter returns a list of recipe ids, and `search()` intersects them with `retainAll`. It's
+plain Java, easy to read, easy to extend with a fifth filter. The cost is that the intersection
+happens in memory, so there's no database-level pagination. For a personal recipe box that's the
+right trade; I chose it over Spring Data Specifications knowingly.
+
+**Autocomplete ranks rather than filters.** Contains-matching, so `oil` finds `olive oil`, with a
+`CASE` in the `ORDER BY` that puts exact matches first, then prefix matches, then everything else.
+
+---
+
+## Entry 6 — Four thousand ingredients
+
+**Date:** 31/08/2026, revisited 04/09/2026
+
+**Goal:** Stop typing ingredients by hand. Seed the database with real ingredient names in
+English, Polish, German and Spanish.
+
+**Built:**
+- A Python script over the Open Food Facts ingredients taxonomy (ODbL)
+- `data.sql` — 4,939 ingredients, 18,472 names, every statement `ON CONFLICT DO NOTHING`
+- `spring.sql.init.mode=always` and `spring.jpa.defer-datasource-initialization=true`
+
+**Requiring all four languages was the wrong filter.** It would have given 1,262 ingredients.
+"English plus whatever translations exist" gives 4,939. Coverage in the taxonomy tracks how
+common an ingredient is, so the ones missing a language are mostly packaged-food jargon nobody
+would type into a recipe anyway.
+
+**Two silent defaults nearly ate the import.**
+
+`@Enumerated` with no argument means `ORDINAL`. Hibernate tried to `ALTER COLUMN language_code
+TYPE smallint`, and the only reason the data survived is that Postgres refused to cast the
+existing text. Now it's `EnumType.STRING` everywhere, and I understand why the default is
+considered dangerous: reorder the enum and every stored value silently means something else.
+
+`spring.sql.init.mode` defaults to `embedded`. On Postgres that means `data.sql` is skipped
+without a word in the log. I misdiagnosed this once — a count of 18,473 rows turned out to come
+from a manual run in pgAdmin, not from the app — and only a completely empty schema settled it.
+
+**The seed is idempotent on purpose.** It replays on every startup, and `ON CONFLICT DO NOTHING`
+makes that safe. The alternative — a one-shot import — would make "does the database match the
+file?" a question with no good answer.
+
+**The revisit.** After extracting the ingredient lists from a 51-recipe cookbook PDF, I checked
+every Polish name against the database: 19 ingredients OFF doesn't have at all, 18 Polish names
+missing from ingredients that existed, 27 translation gaps, mostly Spanish. And one surprise —
+`burrata` was only in the database because I'd created it through the form. It was never in
+`data.sql`. Anything created at runtime lives only in that one database; a reset would have
+dropped it and taken the recipe's link with it. Seeded properly now.
+
+---
+
+## Entry 7 — The frontend, and what an ingredient is called
+
+**Date:** 01/09/2026 – 14/09/2026
+
+**Goal:** A usable app in the browser. Then, once it was usable, fix the thing it made obvious.
+
+**Built:**
+- Thymeleaf pages: list, detail, create/edit form, category management
+- `style.css` from the Figma wireframes; `live-search.js`, `ingredient-picker.js`,
+  `recipe-form.js`, `confirm.js`
+- `RecipeForm` with `AutoPopulatingList` for the dynamic ingredient rows
+- `RecipeIngredient.displayName` and `.section`; hidden `ingredientId` per form row
+- Per-row language selector, shown only when no ingredient was picked
+- `CategoryService.rename` / `delete`, with merge-on-collision
+- A shared `<dialog>` fragment replacing `confirm()`
+
+**The frontend is three rendering modes, not one.** The pages are server-rendered by Thymeleaf.
+Live search fetches `index :: results` — still server-rendered, just a fragment the JavaScript
+swaps in. The autocomplete gets JSON and builds its own `<li>` elements. Same app, twenty lines
+apart, and I couldn't answer "is it server- or client-side?" in a review until I'd traced each.
+
+**The problem the frontend exposed.** A Polish recipe was showing `cherry tomato`. A recipe line
+stores a foreign key to an ingredient, not a word — that's what makes cross-language search
+work — and the page was printing the ingredient's canonical English name.
+
+My first fix was a language on the recipe plus a lookup of each name in that language. I reverted
+it. Polish declines nouns after quantities: the recipe says `4 ząbki czosnku`, and the database
+only holds `czosnek`. A lookup can only ever produce broken Polish. So instead each line stores
+`displayName` — the exact text typed — and the page prints that. The link is what gets searched;
+the word is only a label.
+
+**Then the form was doing two jobs with one field.** Picking an autocomplete suggestion
+overwrote the Polish with English, and typing my own wording created a duplicate ingredient with
+no link to anyone else's onion. One string can't be both a stable key and free text. Now each row
+carries a hidden `ingredientId`: pick a suggestion and the id is set, edit the text to whatever
+reads well and the id stays. Verified with a `PUT` — eleven lines in Polish, zero new ingredients.
+
+**A bug found by removing a dropdown.** With no recipe-level language, every new ingredient name
+got `language_code = NULL`. `findOrCreate` computed `resolvedLanguage` on one line and passed the
+raw parameter on the next. The test that pins the fix fails against the old code with
+`expected: EN but was: null`.
+
+**Categories can't clean themselves up.** `Recipe` owns the join table, so deleting a `Category`
+row directly hits a foreign key. `delete` has to walk every recipe using it and remove it from
+the collection first. Renaming onto an existing name means merge — same walk, adding the target
+before removing the source.
+
+**Two things I got wrong on the way.** A `transform: translateX(30%)` on the search box left its
+full-width layout box on top of the header buttons — transforms move pixels, not layout, and a
+positioned element wins the click. And the recipe list never had an `ORDER BY`; it looked sorted
+because Postgres happened to return insertion order. Both fixed, both the kind of thing that
+works until it doesn't.
