@@ -34,6 +34,10 @@ public class RecipeIngredient {
     @Column(length = 128)
     private String displayName;
 
+    /** Optional heading this line sits under, e.g. "For the tofu". Null means no heading. */
+    @Column(length = 64)
+    private String section;
+
     public RecipeIngredient(Ingredient ingredient, String displayName, Double quantity, String unit, String preparation) {
         this.ingredient = ingredient;
         this.displayName = displayName;

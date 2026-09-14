@@ -53,7 +53,14 @@
 
             <h2>Ingredients</h2>
             <ul class="ingredients">
-                <li th:each="line : ${recipe.ingredients()}">
+                <th:block th:each="line, stat : ${recipe.ingredients()}"
+                          th:with="prev=${stat.index == 0 ? null : recipe.ingredients().get(stat.index - 1).section()}">
+
+                <li class="ingredient-section"
+                    th:if="${!#strings.isEmpty(line.section()) and line.section() != prev}"
+                    th:text="${line.section()}">For the tofu</li>
+
+                <li>
                     <span class="amount">
                         <span th:if="${line.quantity()}"
                               th:text="${line.quantity() % 1 == 0} ? ${line.quantity().longValue()} : ${line.quantity()}">300</span>
@@ -61,11 +68,12 @@
                     </span>
                     <span>
                         <a th:href="@{/recipes(ingredients=${line.ingredientId()})}"
-                           th:text="${line.ingredientName()}"></a>
+                           th:text="${line.ingredientName()}">onion</a>
                         <span class="prep" th:if="${line.preparation()}"
                               th:text="|, ${line.preparation()}|">, chopped</span>
                     </span>
                 </li>
+                </th:block>
             </ul>
 
             <h2>Instructions</h2>
@@ -94,13 +102,14 @@
                 <a class="btn btn-block" th:href="@{/recipes/{id}/edit(id=${recipe.id()})}">Edit recipe</a>
 
                 <form th:action="@{/recipes/{id}/delete(id=${recipe.id()})}" method="post"
-                      onsubmit="return confirm('Delete this recipe?')">
+                      th:data-confirm="|Delete “${recipe.recipeName()}”? This cannot be undone.|">
                     <button type="submit" class="btn btn-block btn-danger">Delete</button>
                 </form>
             </div>
         </aside>
     </div>
 </main>
-
+<div th:replace="~{fragments/confirm :: dialog}"></div>
+<script th:src="@{/js/confirm.js}"></script>
 </body>
 </html>

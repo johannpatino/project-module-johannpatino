@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<dialog th:fragment="dialog" id="confirm-dialog" class="modal">
+    <h2>Are you sure?</h2>
+    <p id="confirm-message">This cannot be undone.</p>
+    <div class="modal-actions">
+        <button type="button" class="btn" data-confirm-cancel>Cancel</button>
+        <button type="button" class="btn btn-danger" data-confirm-ok>Delete</button>
+    </div>
+</dialog>
+
+</body>
+</html>

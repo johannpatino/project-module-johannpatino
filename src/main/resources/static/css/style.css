@@ -476,6 +476,24 @@ img { max-width: 100%; display: block; }
 .ingredients a:hover { color: var(--accent); border-color: var(--accent); }
 .ingredients .prep { color: var(--ink-soft); }
 
+/* Overrides matter here: .ingredients li is a flex row with a bottom border,
+   which would render the heading as just another ingredient line. */
+.ingredients .ingredient-section {
+    display: block;
+    margin: 1.75rem 0 0.25rem;
+    padding: 0;
+    border-bottom: 0;
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+.ingredients .ingredient-section:first-child { margin-top: 0; }
+
+.ingredient-rows td .ingredient-section { font-size: 0.85rem; }
+
 .instructions { white-space: pre-line; line-height: 1.8; }
 
 /* Sticky sidebar card */
@@ -621,7 +639,33 @@ textarea { resize: vertical; line-height: 1.7; }
 .hint { font-size: 0.85rem; color: var(--ink-faint); margin: 0.5rem 0 0; }
 
 .form-actions { display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; }
+.category-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+}
+.category-row:last-child { border-bottom: 0; }
+.category-rename { display: flex; gap: 0.5rem; flex: 1; margin: 0; }
+.category-rename input { flex: 1; }
+.category-usage { font-size: 0.85rem; color: var(--ink-faint); white-space: nowrap; }
+.category-row form { margin: 0; }
 
+dialog.modal {
+    width: min(24rem, calc(100vw - 2rem));
+    padding: 1.75rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-lg);
+}
+dialog.modal::backdrop { background: rgb(27 24 21 / 0.45); backdrop-filter: blur(2px); }
+dialog.modal h2 { font-size: 1.35rem; margin-bottom: 0.5rem; }
+dialog.modal p { color: var(--ink-soft); margin: 0 0 1.5rem; }
+.modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+.modal-actions form { margin: 0; }
 /* ---------------------------------------------------------------
    Responsive
    --------------------------------------------------------------- */
@@ -641,3 +685,4 @@ textarea { resize: vertical; line-height: 1.7; }
     .field-row { grid-template-columns: 1fr; gap: 1.4rem; }
     .form-card { padding: 1.25rem; }
 }
+

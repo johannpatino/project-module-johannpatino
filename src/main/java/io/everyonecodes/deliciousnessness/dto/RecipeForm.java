@@ -23,12 +23,10 @@ public class RecipeForm {
     private Integer servings;
     private Integer cookTimeMinutes;
     private String instructions;
-    private Season season;
     private String imageUrl;
     private String sourceUrl;
     private List<Long> categoryIds = new ArrayList<>();
     private String newCategories = "";
-
     private List<IngredientLine> ingredients = new AutoPopulatingList<>(IngredientLine.class);
     private List<Season> seasons = new ArrayList<>();
 
@@ -37,6 +35,7 @@ public class RecipeForm {
     @NoArgsConstructor
     public static class IngredientLine {
         private Long ingredientId;
+        private String section;
         private String name;
         private Language languageCode;
         private Double quantity;
@@ -60,6 +59,7 @@ public class RecipeForm {
         recipe.ingredients().forEach(dto -> {
             IngredientLine line = new IngredientLine();
             line.setIngredientId(dto.ingredientId());
+            line.setSection(dto.section());
             line.setName(dto.ingredientName());
             line.setQuantity(dto.quantity());
             line.setUnit(dto.unit());
@@ -81,7 +81,7 @@ public class RecipeForm {
                 .map(line -> new CreateRecipeIngredientRequest(
                         line.getIngredientId(), line.getName().trim(), line.getLanguageCode(),
                         line.getQuantity(), blankToNull(line.getUnit()),
-                        blankToNull(line.getPreparation())))
+                        blankToNull(line.getPreparation()), blankToNull(line.getSection())))
                 .toList();
 
         // No language on the web form: ingredients are identified by id, so the only thing

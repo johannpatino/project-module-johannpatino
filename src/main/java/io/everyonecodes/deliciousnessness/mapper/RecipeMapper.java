@@ -52,6 +52,7 @@ public class RecipeMapper {
                         : displayName,
                 recipeIngredient.getQuantity(),
                 recipeIngredient.getUnit(),
-                recipeIngredient.getPreparation());
+                recipeIngredient.getPreparation(),
+                recipeIngredient.getSection());
     }
 }

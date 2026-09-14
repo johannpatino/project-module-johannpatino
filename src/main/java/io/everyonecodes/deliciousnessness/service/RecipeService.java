@@ -9,7 +9,6 @@ import io.everyonecodes.deliciousnessness.model.*;
 import io.everyonecodes.deliciousnessness.repository.RecipeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import io.everyonecodes.deliciousnessness.model.Language;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -70,13 +69,13 @@ public class RecipeService {
         }
 
         if (matchingIds == null) {
-            return recipeRepository.findAllBy();
+            return recipeRepository.findAllByOrderByCreatedAtDesc();
         }
         if (matchingIds.isEmpty()) {
             return List.of();
         }
 
-        return recipeRepository.findByIdIn(matchingIds);
+        return recipeRepository.findByIdInOrderByCreatedAtDesc(matchingIds);
     }
 
     @Transactional
@@ -128,8 +127,11 @@ public class RecipeService {
         for (CreateRecipeIngredientRequest line : request.ingredients()) {
             Ingredient ingredient = resolveIngredient(line, request.languageCode());
 
-            recipe.addIngredient(new RecipeIngredient(
-                    ingredient, line.name().trim(), line.quantity(), line.unit(), line.preparation()));
+            RecipeIngredient recipeIngredient = new RecipeIngredient(
+                    ingredient, line.name().trim(), line.quantity(), line.unit(), line.preparation());
+            recipeIngredient.setSection(line.section());
+
+            recipe.addIngredient(recipeIngredient);
         }
     }
 

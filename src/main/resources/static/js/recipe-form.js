@@ -18,8 +18,16 @@
             field.name = field.name.replace('__INDEX__', nextIndex);
         });
 
+        // Carry the section down from the row above, so a group is typed once, not per row.
+        const rows = rowContainer.querySelectorAll('.ingredient-row');
+        const previousSection = rows.length
+            ? rows[rows.length - 1].querySelector('.ingredient-section').value
+            : '';
+
         rowContainer.appendChild(fragment);
         nextIndex++;
+
+        rowContainer.lastElementChild.querySelector('.ingredient-section').value = previousSection;
 
         const newInput = rowContainer.lastElementChild.querySelector('.ingredient-name');
         newInput.focus();

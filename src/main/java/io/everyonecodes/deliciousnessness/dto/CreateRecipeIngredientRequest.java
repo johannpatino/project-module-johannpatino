@@ -8,5 +8,6 @@ public record CreateRecipeIngredientRequest(
         Language languageCode,
         Double quantity,
         String unit,
-        String preparation) {
+        String preparation,
+        String section) {
 }
