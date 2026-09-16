@@ -34,6 +34,7 @@ public class WebController {
         this.ingredientService = ingredientService;
     }
 
+
     @GetMapping
     public String list(@RequestParam(required = false) String q,
                        @RequestParam(required = false) List<Long> ingredients,

@@ -77,6 +77,9 @@
     </form>
 
     <a class="btn btn-primary" href="/recipes/new">+ Add a recipe</a>
+    <form th:action="@{/logout}" method="post" style="margin:0">
+        <button type="submit" class="btn">Log out</button>
+    </form>
 </header>
 
 <main class="page">

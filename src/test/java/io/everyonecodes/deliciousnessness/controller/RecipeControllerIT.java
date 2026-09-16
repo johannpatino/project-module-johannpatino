@@ -31,6 +31,7 @@ class RecipeControllerIT {
     void setUp() {
         client = RestTestClient.bindToServer()
                 .baseUrl("http://localhost:" + port)
+                .defaultHeaders(headers -> headers.setBasicAuth("test", "test"))
                 .build();
     }
 

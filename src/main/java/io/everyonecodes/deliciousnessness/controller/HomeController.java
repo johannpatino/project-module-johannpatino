@@ -9,4 +9,10 @@ public class HomeController {
     public String home(){
         return "redirect:/recipes";
     }
+
+
+    @GetMapping("/login")
+    public String login(){
+        return "login";
+    }
 }
