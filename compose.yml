@@ -2,6 +2,8 @@ services:
   db:
     image: postgres:18
     restart: unless-stopped
+    command: postgres -c shared_buffers=64MB -c max_connections=20    # add
+    mem_limit: 256m                                                     # add
     environment:
       POSTGRES_DB: deliciousnessness
       POSTGRES_USER: postgres
@@ -17,6 +19,7 @@ services:
   app:
     build: .
     restart: unless-stopped
+    mem_limit: 600m                                                     # add
     depends_on:
       db:
         condition: service_healthy
@@ -25,6 +28,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       APP_SEED_USERNAME: ${APP_SEED_USERNAME:-}
       APP_SEED_PASSWORD: ${APP_SEED_PASSWORD:-}
+      JAVA_TOOL_OPTIONS: "-Xmx256m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC"   # add
     ports:
       - "8080:8080"
 

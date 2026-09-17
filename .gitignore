@@ -37,3 +37,4 @@ build_plan.md
 /TODO.md
 design/
 .env
+*.dump
