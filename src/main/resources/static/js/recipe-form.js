@@ -21,28 +21,99 @@
         // Carry the section down from the row above, so a group is typed once, not per row.
         const rows = rowContainer.querySelectorAll('.ingredient-row');
         const previousSection = rows.length
-            ? rows[rows.length - 1].querySelector('.ingredient-section').value
+            ? sectionBoxOf(rows[rows.length - 1]).value
             : '';
 
+        // The template holds two <tr>s: the section row, then the ingredient row.
         rowContainer.appendChild(fragment);
         nextIndex++;
 
-        rowContainer.lastElementChild.querySelector('.ingredient-section').value = previousSection;
+        const newRow = rowContainer.lastElementChild;
+        sectionBoxOf(newRow).value = previousSection;
+        syncSections();
 
-        const newInput = rowContainer.lastElementChild.querySelector('.ingredient-name');
+        const newInput = newRow.querySelector('.ingredient-name');
         newInput.focus();
         syncLanguage(newInput);
     });
 
     rowContainer.querySelectorAll('.ingredient-name').forEach(syncLanguage);
+    syncSections();
 
     rowContainer.addEventListener('click', event => {
         if (event.target.classList.contains('row-remove')) {
-            event.target.closest('.ingredient-row').remove();
+            const row = event.target.closest('.ingredient-row');
+            sectionRowOf(row).remove();
+            row.remove();
+        }
+
+        if (event.target.classList.contains('section-toggle')) {
+            const row = event.target.closest('.ingredient-row');
+            const sectionRow = sectionRowOf(row);
+
+            if (sectionRow.hidden) {
+                // Start a section here. Typing into the box renames the whole group below.
+                sectionRow.hidden = false;
+                event.target.classList.add('is-open');
+                sectionBoxOf(row).focus();
+            } else {
+                // Remove this heading: the group rejoins whatever section sits above it.
+                const rowAbove = sectionRow.previousElementSibling;
+                const inherited = rowAbove ? sectionBoxOf(rowAbove).value : '';
+                groupOf(row).forEach(member => sectionBoxOf(member).value = inherited);
+                sectionRow.hidden = true;
+                event.target.classList.remove('is-open');
+            }
         }
     });
 
+    // Every ingredient row is preceded by its own section row, so the pair is
+    // always (row.previousElementSibling, row).
+    function sectionRowOf(row) {
+        return row.previousElementSibling;
+    }
+
+    function sectionBoxOf(row) {
+        return sectionRowOf(row).querySelector('.ingredient-section');
+    }
+
+    // The rows a heading governs: this one, then every row below until the next
+    // row that has its own heading open.
+    function groupOf(row) {
+        const members = [row];
+        let nextSectionRow = row.nextElementSibling;
+
+        while (nextSectionRow && nextSectionRow.hidden) {
+            const nextRow = nextSectionRow.nextElementSibling;
+            if (!nextRow) break;
+            members.push(nextRow);
+            nextSectionRow = nextRow.nextElementSibling;
+        }
+        return members;
+    }
+
+    // Show the section row only where a new section starts — the same rule the detail
+    // page uses to print a heading. Rows that merely continue a section keep the value
+    // but stay tidy; the + on any row opens it if the cook wants a new heading there.
+    function syncSections() {
+        let previous = null;
+        rowContainer.querySelectorAll('.ingredient-row').forEach(row => {
+            const value = sectionBoxOf(row).value.trim();
+            const startsSection = value !== '' && value !== previous;
+
+            sectionRowOf(row).hidden = !startsSection;
+            row.querySelector('.section-toggle').classList.toggle('is-open', startsSection);
+            previous = value;
+        });
+    }
+
     rowContainer.addEventListener('input', event => {
+        if (event.target.classList.contains('ingredient-section')) {
+            const row = event.target.closest('.section-row').nextElementSibling;
+            groupOf(row).forEach(member => sectionBoxOf(member).value = event.target.value);
+            return;
+        }
+
         if (!event.target.classList.contains('ingredient-name')) return;
 
         const input = event.target;

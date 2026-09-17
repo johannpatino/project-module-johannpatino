@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: deliciousnessness
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d deliciousnessness"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/deliciousnessness
+      DB_PASSWORD: ${DB_PASSWORD}
+      APP_SEED_USERNAME: ${APP_SEED_USERNAME:-}
+      APP_SEED_PASSWORD: ${APP_SEED_PASSWORD:-}
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

@@ -73,7 +73,7 @@
             <legend>Ingredients</legend>
             <table class="ingredient-rows">
                 <tr>
-                    <th>Section</th>
+                    <th></th>
                     <th>Ingredient</th>
                     <th>Qty</th>
                     <th>Unit</th>
@@ -81,12 +81,23 @@
                     <th></th>
                 </tr>
                 <tbody id="ingredient-rows">
-                <tr class="ingredient-row" th:each="line, stat : *{ingredients}">
-                    <td><input type="text" class="ingredient-section" placeholder="section name"
-                               th:field="*{ingredients[__${stat.index}__].section}"></td>
+                <th:block th:each="line, stat : *{ingredients}">
+                <tr class="section-row" hidden>
+                    <td></td>
+                    <td colspan="4">
+                        <input type="text" class="ingredient-section"
+                               placeholder="Section name"
+                               th:field="*{ingredients[__${stat.index}__].section}">
+                    </td>
+                    <td></td>
+                </tr>
+                <tr class="ingredient-row">
+                    <td class="section-cell">
+                        <button type="button" class="section-toggle" title="Add a section heading above this line">+</button>
+                    </td>
                     <td class="name-cell">
                         <input type="text" class="ingredient-name" autocomplete="off"
-                               placeholder="ingredient"
+                               placeholder="ingredient name"
                                th:field="*{ingredients[__${stat.index}__].name}">
                         <input type="hidden" th:field="*{ingredients[__${stat.index}__].ingredientId}">
                         <select class="ingredient-language" hidden
@@ -96,7 +107,7 @@
                         </select>
                         <ul class="suggestions" hidden></ul>
                     </td>
-                    <td><input type="number" step="any" placeholder="200"
+                    <td><input type="number" step="any" placeholder="20"
                                th:field="*{ingredients[__${stat.index}__].quantity}"></td>
                     <td><input type="text" placeholder="g"
                                th:field="*{ingredients[__${stat.index}__].unit}"></td>
@@ -106,16 +117,27 @@
                         <button type="button" class="row-remove" aria-label="Remove row">&times;</button>
                     </td>
                 </tr>
+                </th:block>
                 </tbody>
             </table>
 
             <template id="ingredient-row-template">
+                <tr class="section-row" hidden>
+                    <td></td>
+                    <td colspan="4">
+                        <input type="text" class="ingredient-section"
+                               placeholder="Section name"
+                               name="ingredients[__INDEX__].section">
+                    </td>
+                    <td></td>
+                </tr>
                 <tr class="ingredient-row">
-                    <td><input type="text" class="ingredient-section" placeholder="For the tofu"
-                               name="ingredients[__INDEX__].section"></td>
+                    <td class="section-cell">
+                        <button type="button" class="section-toggle" title="Add a section heading above this line">+</button>
+                    </td>
                     <td class="name-cell">
                         <input type="text" class="ingredient-name" autocomplete="off"
-                               placeholder="e.g. spaghetti" name="ingredients[__INDEX__].name">
+                               placeholder="ingredient name" name="ingredients[__INDEX__].name">
                         <input type="hidden" name="ingredients[__INDEX__].ingredientId">
                         <select class="ingredient-language" hidden
                                 title="Language of this ingredient name"
@@ -135,7 +157,7 @@
                 </tr>
             </template>
 
-            <p class="hint">Leave rows blank to skip them.</p>
+            <p class="hint">Clink on the + to make a section.</p>
             <button type="button" class="btn" id="add-ingredient-row"
                     style="margin-top:0.75rem">+ Add ingredient
             </button>

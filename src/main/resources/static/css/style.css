@@ -492,8 +492,6 @@ img { max-width: 100%; display: block; }
 }
 .ingredients .ingredient-section:first-child { margin-top: 0; }
 
-.ingredient-rows td .ingredient-section { font-size: 0.85rem; }
-
 .instructions { white-space: pre-line; line-height: 1.8; }
 
 /* Sticky sidebar card */
@@ -614,10 +612,40 @@ textarea { resize: vertical; line-height: 1.7; }
 }
 .ingredient-rows td { padding: 0.2rem 0.15rem; vertical-align: top; }
 .ingredient-rows td input { padding: 0.5rem 0.55rem; }
-.ingredient-rows .name-cell { position: relative; width: 38%; }
-.ingredient-rows td:nth-child(2) { width: 16%; }
-.ingredient-rows td:nth-child(3) { width: 16%; }
+
+/* Columns: [+] | ingredient | qty | unit | preparation | [x]
+   Ingredient gets the room; qty and unit are short values and stay narrow. */
+.ingredient-rows .section-cell { width: 2rem; padding-top: 0.45rem; text-align: center; }
+.ingredient-rows .name-cell    { position: relative; width: 42%; }
+.ingredient-rows td:nth-child(3) { width: 11%; }
+.ingredient-rows td:nth-child(4) { width: 9%; }
 .ingredient-rows td:last-child { width: 2rem; }
+
+.section-toggle {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-faint);
+    border-radius: 6px;
+    width: 1.6rem;
+    height: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    font-size: 1rem;
+}
+.section-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.section-toggle.is-open { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+
+/* A section heading is its own row above the ingredient it starts, spanning the
+   data columns, so the ingredient row underneath stays aligned with its neighbours. */
+.section-row[hidden] { display: none; }
+.section-row td { padding-top: 0.9rem; padding-bottom: 0.3rem; }
+.section-row .ingredient-section {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: var(--accent-soft);
+    border-color: transparent;
+}
 .ingredient-language {
     margin-top: 0.35rem;
     width: auto;
