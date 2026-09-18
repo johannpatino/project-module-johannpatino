@@ -709,7 +709,35 @@ dialog.modal p { color: var(--ink-soft); margin: 0 0 1.5rem; }
     .brand { flex: 1; font-size: 1.05rem; }
     .site-header .btn-primary { padding: 0.5rem 0.85rem; font-size: 0.9rem; }
     .page { padding: 1.75rem 1rem 4rem; }
-    .filter-panel { grid-template-columns: 1fr; left: 0; right: 0; width: auto; }
+
+    /* The panel is normally anchored to the Filters button, which on a phone is a
+       tiny box on the right — so "left:0; right:0" meant "as wide as the button".
+       Making the button static lets the panel anchor to the sticky header instead,
+       so it spans the screen and can scroll within the viewport. */
+    .filter-drop { position: static; }
+    .filter-panel {
+        left: 0.75rem;
+        right: 0.75rem;
+        width: auto;
+        top: calc(100% + 0.4rem);
+        max-height: calc(100vh - 10rem);
+        max-height: calc(100dvh - 10rem);
+        overflow-y: auto;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        padding: 1.25rem;
+    }
+    .filter-scroll { max-height: none; }
+
+    /* Inside a scrolling panel a floating dropdown just gets clipped; let the
+       suggestions flow inline instead. */
+    #ingredient-suggestions {
+        position: static;
+        max-height: none;
+        margin-top: 0.3rem;
+        box-shadow: none;
+    }
+
     .field-row { grid-template-columns: 1fr; gap: 1.4rem; }
     .form-card { padding: 1.25rem; }
 }
