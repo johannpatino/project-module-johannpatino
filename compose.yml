@@ -26,6 +26,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/deliciousnessness
       DB_PASSWORD: ${DB_PASSWORD}
+      REMEMBER_ME_KEY: ${REMEMBER_ME_KEY}
       APP_SEED_USERNAME: ${APP_SEED_USERNAME:-}
       APP_SEED_PASSWORD: ${APP_SEED_PASSWORD:-}
       JAVA_TOOL_OPTIONS: "-Xmx256m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC"   # add
