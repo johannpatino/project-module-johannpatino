@@ -613,13 +613,17 @@ textarea { resize: vertical; line-height: 1.7; }
 .ingredient-rows td { padding: 0.2rem 0.15rem; vertical-align: top; }
 .ingredient-rows td input { padding: 0.5rem 0.55rem; }
 
-/* Columns: [+] | ingredient | qty | unit | preparation | [x]
+/* Columns: [drag] | [+] | ingredient | qty | unit | preparation | [x]
    Ingredient gets the room; qty and unit are short values and stay narrow. */
+.ingredient-rows .drag-handle  { width: 1.6rem; padding-top: 0.45rem; text-align: center; cursor: grab; color: var(--ink-faint); user-select: none; }
 .ingredient-rows .section-cell { width: 2rem; padding-top: 0.45rem; text-align: center; }
 .ingredient-rows .name-cell    { position: relative; width: 42%; }
-.ingredient-rows td:nth-child(3) { width: 11%; }
-.ingredient-rows td:nth-child(4) { width: 9%; }
+.ingredient-rows td:nth-child(4) { width: 11%; }
+.ingredient-rows td:nth-child(5) { width: 9%; }
 .ingredient-rows td:last-child { width: 2rem; }
+
+.ingredient-row.dragging { opacity: 0.4; }
+.ingredient-row[draggable="true"] .drag-handle { cursor: grabbing; }
 
 .section-toggle {
     border: 1px solid var(--line);

@@ -34,11 +34,13 @@
         <div class="field-row">
             <label class="field">
                 <span>Cook time (minutes)</span>
-                <input type="number" th:field="*{cookTimeMinutes}" min="0" placeholder="30" required>
+                <input type="text" inputmode="numeric" pattern="[0-9]*"
+                       th:field="*{cookTimeMinutes}" placeholder="30" required>
             </label>
             <label class="field">
                 <span>Servings</span>
-                <input type="number" th:field="*{servings}" min="1" placeholder="4" required>
+                <input type="text" inputmode="numeric" pattern="[0-9]*"
+                       th:field="*{servings}" placeholder="4" required>
             </label>
         </div>
 
@@ -74,6 +76,7 @@
             <table class="ingredient-rows">
                 <tr>
                     <th></th>
+                    <th></th>
                     <th>Ingredient</th>
                     <th>Qty</th>
                     <th>Unit</th>
@@ -84,6 +87,7 @@
                 <th:block th:each="line, stat : *{ingredients}">
                 <tr class="section-row" hidden>
                     <td></td>
+                    <td></td>
                     <td colspan="4">
                         <input type="text" class="ingredient-section"
                                placeholder="Section name"
@@ -92,6 +96,7 @@
                     <td></td>
                 </tr>
                 <tr class="ingredient-row">
+                    <td class="drag-handle" title="Drag to reorder">&#10021;</td>
                     <td class="section-cell">
                         <button type="button" class="section-toggle" title="Add a section heading above this line">+</button>
                     </td>
@@ -124,6 +129,7 @@
             <template id="ingredient-row-template">
                 <tr class="section-row" hidden>
                     <td></td>
+                    <td></td>
                     <td colspan="4">
                         <input type="text" class="ingredient-section"
                                placeholder="Section name"
@@ -132,6 +138,7 @@
                     <td></td>
                 </tr>
                 <tr class="ingredient-row">
+                    <td class="drag-handle" title="Drag to reorder">&#10021;</td>
                     <td class="section-cell">
                         <button type="button" class="section-toggle" title="Add a section heading above this line">+</button>
                     </td>

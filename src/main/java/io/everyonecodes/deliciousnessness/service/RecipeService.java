@@ -56,16 +56,25 @@ public class RecipeService {
             matchingIds = narrow(matchingIds, recipeRepository.findIdsByNameContaining(query.trim()));
         }
         if (ingredientIds != null && !ingredientIds.isEmpty()) {
-            Set<Long> distinctIngredientIds = new LinkedHashSet<>(ingredientIds);
-            matchingIds = narrow(matchingIds, recipeRepository.findRecipeIdsWithAllIngredients(distinctIngredientIds, distinctIngredientIds.size()));
+            for (Long ingredientId : new LinkedHashSet<>(ingredientIds)) {
+                String name = ingredientService.findEntity(ingredientId)
+                        .map(Ingredient::getCanonicalName)
+                        .orElse(null);
+                if (name == null) {
+                    continue;
+                }
+                matchingIds = narrow(matchingIds, recipeRepository.findRecipeIdsByIngredientNameContaining(name));
+            }
         }
 
         if (categoryIds != null && !categoryIds.isEmpty()) {
-            matchingIds = narrow(matchingIds, recipeRepository.findIdsByAnyCategory(categoryIds));
+            Set<Long> distinctCategoryIds = new LinkedHashSet<>(categoryIds);
+            matchingIds = narrow(matchingIds, recipeRepository.findIdsByAllCategories(distinctCategoryIds, distinctCategoryIds.size()));
         }
 
         if (seasons != null && !seasons.isEmpty()) {
-            matchingIds = narrow(matchingIds, recipeRepository.findIdsByAnySeason(seasons));
+            Set<Season> distinctSeasons = new LinkedHashSet<>(seasons);
+            matchingIds = narrow(matchingIds, recipeRepository.findIdsByAllSeasons(distinctSeasons, distinctSeasons.size()));
         }
 
         if (matchingIds == null) {

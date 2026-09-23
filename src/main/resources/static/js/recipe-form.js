@@ -10,6 +10,7 @@
 
     let nextIndex = rowContainer.querySelectorAll('.ingredient-row').length;
     let debounceTimer;
+    let draggedRow = null;
 
     addRowButton.addEventListener('click', () => {
         const fragment = rowTemplate.content.cloneNode(true);
@@ -66,6 +67,83 @@
             }
         }
     });
+
+    // Drag reordering. Only the handle arms the row (draggable stays off otherwise,
+    // so text selection inside the name/qty/unit inputs keeps working normally).
+    rowContainer.addEventListener('mousedown', event => {
+        const handle = event.target.closest('.drag-handle');
+        if (!handle) return;
+        handle.closest('.ingredient-row').draggable = true;
+    });
+
+    document.addEventListener('mouseup', () => {
+        rowContainer.querySelectorAll('.ingredient-row').forEach(row => {
+            if (!row.classList.contains('dragging')) row.draggable = false;
+        });
+    });
+
+    rowContainer.addEventListener('dragstart', event => {
+        const row = event.target.closest('.ingredient-row');
+        if (!row) return;
+        draggedRow = row;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', '');
+        row.classList.add('dragging');
+    });
+
+    rowContainer.addEventListener('dragover', event => {
+        if (!draggedRow) return;
+        event.preventDefault();
+
+        const targetRow = event.target.closest('.ingredient-row');
+        if (!targetRow || targetRow === draggedRow) return;
+
+        const rect = targetRow.getBoundingClientRect();
+        const insertAfter = event.clientY - rect.top > rect.height / 2;
+        movePair(draggedRow, targetRow, insertAfter);
+    });
+
+    rowContainer.addEventListener('drop', event => event.preventDefault());
+
+    rowContainer.addEventListener('dragend', () => {
+        if (draggedRow) {
+            draggedRow.classList.remove('dragging');
+            draggedRow.draggable = false;
+        }
+        draggedRow = null;
+        renumberRows();
+        syncSections();
+    });
+
+    // Moves a row together with its own section row, so the section name
+    // (which belongs to this specific line) travels with it.
+    function movePair(row, targetRow, insertAfter) {
+        const rowSection = sectionRowOf(row);
+        const targetSection = sectionRowOf(targetRow);
+
+        if (insertAfter) {
+            targetRow.after(rowSection, row);
+        } else {
+            targetSection.before(rowSection, row);
+        }
+    }
+
+    // Field names encode the list index (ingredients[2].name), so after a drag
+    // the DOM order and the submitted order have to be renumbered back in sync.
+    function renumberRows() {
+        const rows = rowContainer.querySelectorAll('.ingredient-row');
+        rows.forEach((row, index) => {
+            renumberFields(sectionRowOf(row), index);
+            renumberFields(row, index);
+        });
+        nextIndex = rows.length;
+    }
+
+    function renumberFields(tr, index) {
+        tr.querySelectorAll('[name]').forEach(field => {
+            field.name = field.name.replace(/\[\d+\]/, '[' + index + ']');
+        });
+    }
 
     // Every ingredient row is preceded by its own section row, so the pair is
     // always (row.previousElementSibling, row).

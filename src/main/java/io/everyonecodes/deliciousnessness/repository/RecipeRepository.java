@@ -17,13 +17,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     List<RecipeSummaryDto> findAllByOrderByCreatedAtDesc();
 
     @Query("""
-            SELECT ri.recipe.id
+            SELECT DISTINCT ri.recipe.id
             FROM RecipeIngredient  ri
-            WHERE ri.ingredient.id IN :ingredientIds
-            GROUP BY ri.recipe.id
-            HAVING COUNT(DISTINCT ri.ingredient.id) = :requiredCount
+            WHERE ri.ingredient.id IN (
+                        SELECT n.ingredient.id FROM IngredientName n
+                        WHERE lower(n.name) LIKE lower(concat('%', :term, '%'))
+                        )
             """)
-    List<Long> findRecipeIdsWithAllIngredients(@Param("ingredientIds") Collection<Long> ingredientIds, @Param("requiredCount") long requiredCount);
+    List<Long> findRecipeIdsByIngredientNameContaining(@Param("term") String term);
 
     List<RecipeSummaryDto> findByIdInOrderByCreatedAtDesc(Collection<Long> recipeIds);
 
@@ -34,18 +35,22 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     List<Long> findIdsByNameContaining(@Param("query") String query);
 
     @Query("""
-            SELECT DISTINCT r.id FROM Recipe r
+            SELECT r.id FROM Recipe r
             JOIN r.categories c
             WHERE c.id IN :categoryIds
+            GROUP BY r.id
+            HAVING COUNT(DISTINCT c.id) = :requiredCount
             """)
-    List<Long> findIdsByAnyCategory(@Param("categoryIds") Collection<Long> categoryIds);
+    List<Long> findIdsByAllCategories(@Param("categoryIds") Collection<Long> categoryIds, @Param("requiredCount") long requiredCount);
 
     @Query("""
-            SELECT DISTINCT r.id FROM Recipe r
+            SELECT r.id FROM Recipe r
             JOIN r.seasons s
             WHERE s IN :seasons
+            GROUP BY r.id
+            HAVING COUNT(DISTINCT s) = :requiredCount
             """)
-    List<Long> findIdsByAnySeason(@Param("seasons") Collection<Season> seasons);
+    List<Long> findIdsByAllSeasons(@Param("seasons") Collection<Season> seasons, @Param("requiredCount") long requiredCount);
 
     List<Recipe> findByCategoriesId(Long categoryId);
 }

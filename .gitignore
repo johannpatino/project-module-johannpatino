@@ -38,3 +38,5 @@ build_plan.md
 design/
 .env
 *.dump
+.claude/
+brag-output/
