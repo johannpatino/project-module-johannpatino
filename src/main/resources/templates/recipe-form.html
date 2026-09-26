@@ -74,7 +74,7 @@
         <fieldset>
             <legend>Ingredients</legend>
             <table class="ingredient-rows">
-                <tr>
+                <tr class="ingredient-rows-head">
                     <th></th>
                     <th></th>
                     <th>Ingredient</th>
@@ -112,13 +112,14 @@
                         </select>
                         <ul class="suggestions" hidden></ul>
                     </td>
-                    <td><input type="number" step="any" placeholder="20"
+                    <td class="qty-cell"><input type="text" inputmode="decimal" pattern="[0-9]*\.?[0-9]*"
+                               placeholder="20"
                                th:field="*{ingredients[__${stat.index}__].quantity}"></td>
-                    <td><input type="text" placeholder="g"
+                    <td class="unit-cell"><input type="text" placeholder="g"
                                th:field="*{ingredients[__${stat.index}__].unit}"></td>
-                    <td><input type="text" placeholder="chopped"
+                    <td class="prep-cell"><input type="text" placeholder="chopped"
                                th:field="*{ingredients[__${stat.index}__].preparation}"></td>
-                    <td>
+                    <td class="remove-cell">
                         <button type="button" class="row-remove" aria-label="Remove row">&times;</button>
                     </td>
                 </tr>
@@ -153,12 +154,13 @@
                         </select>
                         <ul class="suggestions" hidden></ul>
                     </td>
-                    <td><input type="number" step="any" placeholder="200"
+                    <td class="qty-cell"><input type="text" inputmode="decimal" pattern="[0-9]*\.?[0-9]*"
+                               placeholder="200"
                                name="ingredients[__INDEX__].quantity"></td>
-                    <td><input type="text" placeholder="g" name="ingredients[__INDEX__].unit"></td>
-                    <td><input type="text" placeholder="chopped"
+                    <td class="unit-cell"><input type="text" placeholder="g" name="ingredients[__INDEX__].unit"></td>
+                    <td class="prep-cell"><input type="text" placeholder="chopped"
                                name="ingredients[__INDEX__].preparation"></td>
-                    <td>
+                    <td class="remove-cell">
                         <button type="button" class="row-remove" aria-label="Remove row">&times;</button>
                     </td>
                 </tr>

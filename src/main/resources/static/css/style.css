@@ -618,9 +618,9 @@ textarea { resize: vertical; line-height: 1.7; }
 .ingredient-rows .drag-handle  { width: 1.6rem; padding-top: 0.45rem; text-align: center; cursor: grab; color: var(--ink-faint); user-select: none; }
 .ingredient-rows .section-cell { width: 2rem; padding-top: 0.45rem; text-align: center; }
 .ingredient-rows .name-cell    { position: relative; width: 42%; }
-.ingredient-rows td:nth-child(4) { width: 11%; }
-.ingredient-rows td:nth-child(5) { width: 9%; }
-.ingredient-rows td:last-child { width: 2rem; }
+.ingredient-rows .qty-cell     { width: 11%; }
+.ingredient-rows .unit-cell    { width: 9%; }
+.ingredient-rows .remove-cell  { width: 2rem; }
 
 .ingredient-row.dragging { opacity: 0.4; }
 .ingredient-row[draggable="true"] .drag-handle { cursor: grabbing; }
@@ -704,20 +704,24 @@ dialog.modal p { color: var(--ink-soft); margin: 0 0 1.5rem; }
 @media (max-width: 60rem) {
     .recipe-layout { grid-template-columns: 1fr; gap: 2rem; }
     .quick-info { position: static; }
-    .filter-panel { grid-template-columns: 1fr 1fr; }
 }
 
-@media (max-width: 44rem) {
-    .site-header { flex-wrap: wrap; padding: 0.75rem 1rem; }
+/* A wider threshold than the recipe sidebar above: below this, brand + search +
+   Filters + Add-recipe + Log out no longer fit one line. Below ~60rem the search
+   box was the one that gave way, shrinking down to a few unusable pixels instead
+   of wrapping; between ~60rem and this point the header still fits on one line,
+   but the Filters button hasn't moved far enough right for the panel (which
+   anchors to it) to avoid running off the left edge of the screen. Moving
+   search+Filters to their own full-width row avoids both problems at once. */
+@media (max-width: 65rem) {
+    .site-header { flex-wrap: wrap; }
     .site-header .filters { order: 3; width: 100%; flex-basis: 100%; }
-    .brand { flex: 1; font-size: 1.05rem; }
-    .site-header .btn-primary { padding: 0.5rem 0.85rem; font-size: 0.9rem; }
-    .page { padding: 1.75rem 1rem 4rem; }
 
-    /* The panel is normally anchored to the Filters button, which on a phone is a
-       tiny box on the right — so "left:0; right:0" meant "as wide as the button".
-       Making the button static lets the panel anchor to the sticky header instead,
-       so it spans the screen and can scroll within the viewport. */
+    /* The panel is normally anchored to the Filters button. Once filters drops to
+       its own full-width row on a narrower screen, the button can sit far enough
+       left that a right-anchored panel would run off the left edge of the screen —
+       making the button's position:relative static anchors the panel to the sticky
+       header instead, so it spans the screen and can scroll within the viewport. */
     .filter-drop { position: static; }
     .filter-panel {
         left: 0.75rem;
@@ -727,7 +731,7 @@ dialog.modal p { color: var(--ink-soft); margin: 0 0 1.5rem; }
         max-height: calc(100vh - 10rem);
         max-height: calc(100dvh - 10rem);
         overflow-y: auto;
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: 1.25rem;
         padding: 1.25rem;
     }
@@ -741,8 +745,66 @@ dialog.modal p { color: var(--ink-soft); margin: 0 0 1.5rem; }
         margin-top: 0.3rem;
         box-shadow: none;
     }
+}
+
+@media (max-width: 44rem) {
+    .site-header { padding: 0.75rem 1rem; }
+    .brand { flex: 1; font-size: 1.05rem; }
+    .site-header .btn { padding: 0.5rem 0.85rem; font-size: 0.9rem; }
+    .page { padding: 1.75rem 1rem 4rem; }
+
+    .filter-panel { grid-template-columns: 1fr; }
 
     .field-row { grid-template-columns: 1fr; gap: 1.4rem; }
     .form-card { padding: 1.25rem; }
+
+    /* The rename/usage/delete controls on one row no longer fit a phone width;
+       let the rename box take its own line and the rest sit underneath it. */
+    .category-row { flex-wrap: wrap; row-gap: 0.5rem; }
+    .category-rename { flex-basis: 100%; }
+}
+
+/* Below this, the ingredient table's columns are too narrow to use — the table
+   is switched to a stacked layout instead, one ingredient per block. The drag
+   handle and section toggle sit in their own column on the left, spanning every
+   row that belongs to that ingredient, via named grid areas. */
+@media (max-width: 30rem) {
+    .ingredient-rows, .ingredient-rows tbody { display: block; width: auto; }
+    .ingredient-rows-head { display: none; }
+    .section-row { display: block; }
+
+    .ingredient-row {
+        display: grid;
+        /* 1fr, not auto: an auto track sizes to an input's default intrinsic
+           width (~20 characters) and ignores its width:100%, which starved this
+           column instead of sharing space with the other one. */
+        grid-template-columns: 1.6rem 1.6rem 1fr 1fr auto;
+        grid-template-areas:
+            "drag section name name remove"
+            "drag section qty  unit remove"
+            "drag section prep prep prep";
+        column-gap: 0.5rem;
+        row-gap: 0.4rem;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--line);
+    }
+    /* min-width: 0 lets a cell shrink below its input's default intrinsic
+       width instead of forcing the grid track wider than the row. */
+    .ingredient-row td { padding: 0; width: auto; min-width: 0; }
+
+    /* width: auto here overrides the desktop table's own .name-cell/.qty-cell/etc.
+       percentage widths (same specificity, so this only wins by coming later) —
+       without it every cell shrinks to that percentage of its grid track. */
+    .ingredient-rows .drag-handle  { grid-area: drag; width: auto; align-self: start; padding-top: 0.3rem; }
+    .ingredient-rows .section-cell { grid-area: section; width: auto; align-self: start; padding-top: 0.3rem; }
+    .ingredient-rows .name-cell    { grid-area: name; width: auto; }
+    .ingredient-rows .qty-cell     { grid-area: qty; width: auto; }
+    .ingredient-rows .unit-cell    { grid-area: unit; width: auto; }
+    .ingredient-rows .prep-cell    { grid-area: prep; width: auto; }
+    .ingredient-rows .remove-cell  { grid-area: remove; width: auto; align-self: center; }
+
+    .section-row { padding: 0.5rem 0 0; }
+    .section-row td { display: block; padding: 0; }
 }
 

@@ -1,6 +1,7 @@
 (function () {
     const form = document.querySelector('form.filters');
     const results = document.getElementById('results');
+    const filterDrop = document.querySelector('.filter-drop');
     if (!form || !results) return;
 
     const DEBOUNCE_MS = 250;
@@ -20,6 +21,10 @@
 
     form.addEventListener('submit', event => {
         event.preventDefault();
+        // Only "Apply filters" submits the form — since the refresh happens in
+        // place (no page navigation), the <details> panel would otherwise stay
+        // open the way a real page load would never have left it.
+        if (filterDrop) filterDrop.open = false;
         refresh();
     });
 
