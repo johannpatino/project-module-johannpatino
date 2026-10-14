@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Past recipes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="site-header">
+    <a class="brand" href="/recipes">Deliciousnessness</a>
+    <span style="flex:1"></span>
+    <a class="btn" href="/planner">Planner</a>
+    <a class="btn btn-primary" href="/recipes/new">+ Add a recipe</a>
+    <form th:action="@{/logout}" method="post" style="margin:0">
+        <button type="submit" class="btn">Log out</button>
+    </form>
+</header>
+
+<main class="page">
+
+    <a class="back-link" href="/planner">&larr; Back to planner</a>
+
+    <div class="results-head">
+        <h1>Past recipes</h1>
+    </div>
+    <p class="hint">Every recipe placed on a day in a week that has already passed, with the last day it was planned.</p>
+
+    <section class="history-section">
+        <h2>Last planned</h2>
+        <p class="empty-state" th:if="${#lists.isEmpty(lastPlanned)}">No past weeks yet.</p>
+
+        <table class="history-table" th:unless="${#lists.isEmpty(lastPlanned)}">
+            <thead>
+                <tr><th>Recipe</th><th>Last planned</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="item : ${lastPlanned}">
+                    <td><a th:href="@{/recipes/{id}(id=${item.recipeId()})}" th:text="${item.recipeName()}">Recipe</a></td>
+                    <td th:text="${#temporals.format(item.lastPlanned(), 'EEEE d MMM yyyy')}">Monday 12 Oct 2026</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="history-section">
+        <h2>Past weeks</h2>
+        <p class="empty-state" th:if="${#lists.isEmpty(pastWeeks)}">No past weeks yet.</p>
+
+        <article class="past-week" th:each="week : ${pastWeeks}">
+            <h3 th:text="|Week of ${#temporals.format(week.startDate(), 'd MMM yyyy')}|">Week of</h3>
+            <ul class="past-days">
+                <li th:each="day : ${week.days()}" th:unless="${day.empty()}">
+                    <span class="past-day-name"
+                          th:text="${#strings.capitalize(#strings.toLowerCase(day.day()))}">Monday</span>
+                    <span th:unless="${#lists.isEmpty(day.ela())}">
+                        <em>Ela</em>
+                        <th:block th:each="card, stat : ${day.ela()}"><a th:href="@{/recipes/{id}(id=${card.recipeId()})}" th:text="${card.recipeName()}">Recipe</a><th:block th:if="${!stat.last}">, </th:block></th:block>
+                    </span>
+                    <span th:unless="${#lists.isEmpty(day.johann())}">
+                        <em>Johann</em>
+                        <th:block th:each="card, stat : ${day.johann()}"><a th:href="@{/recipes/{id}(id=${card.recipeId()})}" th:text="${card.recipeName()}">Recipe</a><th:block th:if="${!stat.last}">, </th:block></th:block>
+                    </span>
+                </li>
+            </ul>
+        </article>
+    </section>
+</main>
+
+</body>
+</html>

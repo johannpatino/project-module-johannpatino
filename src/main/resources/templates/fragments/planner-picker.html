@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Week choice. With more than one week you tick the weeks; with only one week it is used
+     without asking, through the hidden field. -->
+<div th:fragment="week-picker(weeks)">
+    <fieldset class="day-picker" th:if="${#lists.size(weeks) > 1}">
+        <legend>Which weeks?</legend>
+        <div class="day-checks">
+            <label th:each="week : ${weeks}">
+                <input type="checkbox" name="weekIds" th:value="${week.id()}">
+                <span th:text="|Week of ${#temporals.format(week.startDate(), 'd MMM')}|">Week of</span>
+            </label>
+        </div>
+    </fieldset>
+    <input type="hidden" name="weekIds" th:if="${#lists.size(weeks) == 1}" th:value="${weeks[0].id()}">
+</div>
+
+<!-- One planner card: one serving of a recipe. Day and person are empty for unplaced cards. -->
+<div th:fragment="card(card, day, person)" class="card" data-card
+     th:data-entry-id="${card.id()}" th:data-day="${day}" th:data-person="${person}">
+    <span class="card-grip" data-grip title="Drag to move" aria-hidden="true">&#8942;&#8942;</span>
+    <a class="card-link" th:href="@{/recipes/{id}(id=${card.recipeId()})}" draggable="false">
+        <span class="card-media">
+            <img th:if="${card.imageUrl()}" th:src="${card.imageUrl()}" th:alt="${card.recipeName()}"
+                 loading="lazy" draggable="false">
+            <span class="card-media-empty" th:unless="${card.imageUrl()}">&#127859;</span>
+        </span>
+        <span class="card-name" th:text="${card.recipeName()}">Recipe name</span>
+    </a>
+    <form th:action="@{/planner/{id}/delete(id=${card.id()})}" method="post" class="card-remove-form">
+        <button type="submit" class="card-remove" aria-label="Remove this card">&times;</button>
+    </form>
+</div>
+
+</body>
+</html>

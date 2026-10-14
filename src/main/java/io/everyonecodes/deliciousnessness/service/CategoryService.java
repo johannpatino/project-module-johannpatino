@@ -80,6 +80,13 @@ public class CategoryService {
         return categoryRepository.findAllByOrderByNameAsc();
     }
 
+    // The id of a category by name, without creating it. Empty when there is no such category,
+    // as on the local database, where "yet to try" doesn't exist.
+    @Transactional(readOnly = true)
+    public Optional<Long> findIdByName(String name) {
+        return categoryRepository.findByNameIgnoreCase(name).map(Category::getId);
+    }
+
     @Transactional
     public Set<Category> findOrCreateAll(Set<String> names) {
         Set<Category> categories = new LinkedHashSet<>();

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- One grid of recipe cards. Used by the home sections and by the filtered list. -->
+<div th:fragment="recipe-grid(recipes)" class="grid">
+    <article class="card" th:each="recipe : ${recipes}">
+
+        <a class="card-media" th:href="@{/recipes/{id}(id=${recipe.id()})}"
+           th:classappend="${recipe.imageUrl()} == null ? 'is-empty' : ''">
+            <img th:if="${recipe.imageUrl()}" th:src="${recipe.imageUrl()}"
+                 th:alt="${recipe.recipeName()}" loading="lazy">
+            <th:block th:if="${recipe.imageUrl()} == null">&#127859;</th:block>
+        </a>
+
+        <div class="card-body">
+            <h2>
+                <a th:href="@{/recipes/{id}(id=${recipe.id()})}"
+                   th:text="${recipe.recipeName()}">Recipe name</a>
+            </h2>
+
+            <p class="card-meta">
+                <span th:if="${recipe.cookTimeMinutes()}"
+                      th:text="|&#9201; ${recipe.cookTimeMinutes()} min|">&#9201; 30 min</span>
+                <span th:if="${recipe.servings()}"
+                      th:text="|&#127869; ${recipe.servings()} servings|">&#127869; 4 servings</span>
+            </p>
+        </div>
+    </article>
+</div>
+
+</body>
+</html>

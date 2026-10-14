@@ -336,6 +336,21 @@ img { max-width: 100%; display: block; }
 .chip-remove:hover { opacity: 1; }
 
 /* ---------------------------------------------------------------
+   Home sections: "in season now" and "all recipes"
+   --------------------------------------------------------------- */
+.home-section { margin-bottom: 3rem; }
+.section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+}
+.section-head h2 { font-size: clamp(1.5rem, 3vw, 2rem); }
+.section-sub { margin: 0.2rem 0 0; font-size: 0.9rem; color: var(--ink-soft); }
+
+/* ---------------------------------------------------------------
    Results
    --------------------------------------------------------------- */
 .results-head {
@@ -699,6 +714,519 @@ dialog.modal p { color: var(--ink-soft); margin: 0 0 1.5rem; }
 .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
 .modal-actions form { margin: 0; }
 /* ---------------------------------------------------------------
+   Weekly planner
+   Seven day cards in a row; the grid drops to 4 and then 1 column
+   at the same breakpoints the rest of the site uses (see Responsive).
+   --------------------------------------------------------------- */
+.week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.day {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
+    padding: 0.9rem 0.8rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.day-name {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+
+.day .hint { margin: 0; }
+
+.day-entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+/* A planned recipe is a small card: picture on top, name below, × over the picture. */
+.day-entry {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.entry-link { display: block; color: var(--ink); }
+.entry-link:hover .entry-name { color: var(--accent); }
+.entry-media {
+    display: block;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(135deg, #ece5da, #e0d7c9);
+    overflow: hidden;
+}
+.entry-media img { width: 100%; height: 100%; object-fit: cover; }
+.entry-media-empty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    font-size: 1.4rem;
+    opacity: 0.35;
+}
+.entry-name {
+    display: block;
+    padding: 0.4rem 0.5rem 0.5rem;
+    font-size: 0.84rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+.entry-remove { position: absolute; top: 0.35rem; right: 0.35rem; margin: 0; }
+.entry-remove-btn {
+    width: 1.6rem;
+    height: 1.6rem;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: var(--shadow);
+    color: var(--ink-soft);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.entry-remove-btn:hover { color: var(--danger); }
+
+.planner-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+
+/* One block per week: its dated heading and buttons, then the seven day cards. */
+.plan-week { margin-bottom: 2.5rem; }
+.plan-week-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+.plan-week-head h2 { font-size: 1.5rem; }
+.add-week { margin-top: 0.5rem; }
+
+/* ---------------------------------------------------------------
+   Planner popups (add recipe, and add-from-recipe-page)
+   --------------------------------------------------------------- */
+dialog.planner-dialog {
+    width: min(60rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+}
+.dialog-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+.dialog-head h2 { margin-bottom: 1rem; }
+.dialog-close {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--ink-faint);
+}
+.dialog-close:hover { color: var(--ink); }
+
+.day-picker { min-width: 0; margin: 0 0 1rem; padding: 0; border: 0; }
+.day-picker legend {
+    padding: 0;
+    margin-bottom: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+.day-checks { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.day-checks label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    user-select: none;
+}
+.day-checks label:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+}
+.day-checks input { accent-color: var(--accent); margin: 0; }
+
+.pick-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 9rem 9rem;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+}
+.pick-filters input[type="search"] {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    font: inherit;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+.pick-filters input[type="search"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.pick-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: 0.75rem;
+    max-height: 22rem;
+    overflow-y: auto;
+    padding: 0.2rem;
+}
+.pick-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+}
+.pick-card[hidden] { display: none; }
+.pick-card:has(input:checked) { border-color: var(--accent); }
+.pick-card input {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    z-index: 1;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0;
+    accent-color: var(--accent);
+}
+.pick-media {
+    display: block;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(135deg, #ece5da, #e0d7c9);
+    overflow: hidden;
+}
+.pick-media img { width: 100%; height: 100%; object-fit: cover; }
+.pick-media-empty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    font-size: 1.4rem;
+    opacity: 0.35;
+}
+.pick-name {
+    padding: 0.4rem 0.5rem 0.5rem;
+    font-size: 0.84rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+.pick-empty { padding: 1.5rem 0; text-align: center; color: var(--ink-soft); }
+.pick-empty[hidden] { display: none; }
+
+/* ---------------------------------------------------------------
+   Planner cards. Days are columns; each day has an Ela and a Johann column.
+   --------------------------------------------------------------- */
+.day-people {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.day-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+    min-height: 7rem;
+    padding: 0.4rem;
+    background: var(--bg);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius-sm);
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.cell-title {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+
+.day-cell.is-over,
+.unplaced-lane.is-over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+/* Cards waiting to be placed. */
+.unplaced-lane {
+    margin-bottom: 1rem;
+    padding: 0.8rem 1rem;
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.lane-title {
+    margin-bottom: 0.6rem;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.lane-title .hint {
+    margin: 0 0 0 0.5rem;
+    font-weight: 400;
+}
+
+.lane-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-height: 3rem;
+}
+
+.lane-cards .card { width: 9.5rem; }
+
+/* One card: one serving of a recipe. */
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    user-select: none;
+}
+
+.card.is-dragging { opacity: 0.35; }
+
+/* The grab bar: a full-width strip across the top of the card, easy to hit with a mouse or a finger. */
+.card-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.2rem;
+    font-size: 1.15rem;
+    line-height: 1;
+    letter-spacing: 0;
+    color: var(--ink-soft);
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    cursor: grab;
+    touch-action: none; /* on the grab bar only, so the rest of the page still scrolls */
+}
+.card-grip:hover { color: var(--accent); background: var(--accent-soft); }
+.card-grip:active { cursor: grabbing; }
+
+.card-link {
+    display: flex;
+    flex-direction: column;
+    color: var(--ink);
+}
+.card-link:hover .card-name { color: var(--accent); }
+
+.card-media {
+    display: block;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(135deg, #ece5da, #e0d7c9);
+    overflow: hidden;
+}
+.card-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card-media-empty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    font-size: 1.2rem;
+    opacity: 0.35;
+}
+
+.card-name {
+    display: -webkit-box;
+    padding: 0.3rem 0.4rem 0.4rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
+}
+
+.card-remove-form { position: absolute; top: 0.35rem; right: 0.35rem; margin: 0; }
+.card-remove {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: var(--shadow);
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.card-remove:hover { color: var(--danger); }
+
+/* The copy that follows the pointer while a card is dragged. */
+.card-ghost {
+    position: fixed;
+    z-index: 200;
+    width: 9.5rem;
+    pointer-events: none;
+    opacity: 0.92;
+    box-shadow: var(--shadow-lg);
+    transform: rotate(2deg);
+}
+
+/* ---------------------------------------------------------------
+   Shopping list
+   --------------------------------------------------------------- */
+.shop-list {
+    list-style: none;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+.shop-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--line);
+}
+.shop-item:last-child { border-bottom: 0; }
+.shop-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem; }
+.shop-amount { min-width: 5.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.shop-edit { margin-left: auto; }
+.shop-edit summary {
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    list-style: none;
+}
+.shop-edit summary::-webkit-details-marker { display: none; }
+.shop-edit summary:hover { color: var(--accent); }
+.shop-edit[open] { width: 100%; }
+.shop-form { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.6rem 0; }
+.shop-form input { flex: 1 1 10rem; min-width: 0; }
+
+.shop-add { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.shop-add input { flex: 1 1 10rem; min-width: 0; }
+
+/* ---------------------------------------------------------------
+   Past recipes
+   --------------------------------------------------------------- */
+.history-section { margin-bottom: 2.5rem; }
+.history-section h2 { font-size: 1.4rem; margin-bottom: 1rem; }
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.history-table th,
+.history-table td {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--line);
+}
+.history-table th {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+}
+.history-table tr:last-child td { border-bottom: 0; }
+
+.past-week {
+    margin-bottom: 1rem;
+    padding: 1rem 1.2rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+.past-week h3 { font-size: 1.1rem; margin-bottom: 0.6rem; }
+.past-days { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.past-days li { font-size: 0.92rem; }
+.past-day-name { display: inline-block; min-width: 6.5rem; font-weight: 600; color: var(--ink-soft); }
+
+/* A combined line: its total on top, and the lines it came from underneath (screen only). */
+.shop-total { background: var(--accent-soft); }
+.shop-total .shop-amount { color: var(--accent-dark); }
+.shop-count { margin-left: auto; font-size: 0.82rem; color: var(--ink-faint); }
+.is-part { padding-left: 2.25rem; }
+.is-part .shop-amount { font-weight: 400; color: var(--ink-soft); }
+
+/* Printing. planner.js adds the "printing" class just before the print dialog opens, so these
+   rules are the ones that get printed: one line per item, no buttons, no sub-lines. Every row
+   has a fixed height, so the page length is predictable and planner.js can shrink it to fit. */
+@page { size: A4; margin: 12mm; }
+
+body.printing { background: #fff; }
+body.printing .site-header,
+body.printing .no-print,
+body.printing .back-link,
+body.printing .shop-edit,
+body.printing .shop-add,
+body.printing .planner-actions,
+body.printing .is-part { display: none !important; }
+body.printing .page { padding: 0; max-width: none; }
+body.printing .results-head { margin-bottom: 0.75rem; }
+body.printing .results-head h1 { font-size: 1.5rem; }
+body.printing .shop-list { margin: 0; border: 0; box-shadow: none; }
+body.printing .shop-item {
+    height: 1.9rem;
+    padding: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    break-inside: avoid;
+}
+body.printing .shop-text { flex-wrap: nowrap; gap: 0.6rem; }
+body.printing .shop-amount { min-width: 6.5rem; }
+body.printing .shop-total { background: none; }
+
+/* ---------------------------------------------------------------
    Responsive
    --------------------------------------------------------------- */
 @media (max-width: 60rem) {
@@ -707,13 +1235,12 @@ dialog.modal p { color: var(--ink-soft); margin: 0 0 1.5rem; }
 }
 
 /* A wider threshold than the recipe sidebar above: below this, brand + search +
-   Filters + Add-recipe + Log out no longer fit one line. Below ~60rem the search
-   box was the one that gave way, shrinking down to a few unusable pixels instead
-   of wrapping; between ~60rem and this point the header still fits on one line,
-   but the Filters button hasn't moved far enough right for the panel (which
-   anchors to it) to avoid running off the left edge of the screen. Moving
-   search+Filters to their own full-width row avoids both problems at once. */
-@media (max-width: 65rem) {
+   Filters + Planner + Add-recipe + Log out no longer fit one line. Below ~60rem the
+   search box was the one that gave way, shrinking down to a few unusable pixels
+   instead of wrapping; up to this point the header still fits on one line, but the
+   Filters button sits too far left for the panel (which anchors to it) to stay on
+   screen. Moving search+Filters to their own full-width row avoids both problems. */
+@media (max-width: 75rem) {
     .site-header { flex-wrap: wrap; }
     .site-header .filters { order: 3; width: 100%; flex-basis: 100%; }
 
@@ -747,7 +1274,25 @@ dialog.modal p { color: var(--ink-soft); margin: 0 0 1.5rem; }
     }
 }
 
+/* Weekly planner: seven day columns need room for two cards side by side, so the planner page is
+   wider than the rest of the site. Below 1200px the days wrap to four per row, then one per row. */
+.page.planner-page { max-width: 100rem; }
+
+@media (max-width: 75rem) {
+    .week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 @media (max-width: 44rem) {
+    .week { grid-template-columns: 1fr; }
+
+    /* Phone: each planned recipe becomes a row with a small picture on the left. */
+    .entry-link { display: flex; }
+    .entry-media { width: 5rem; flex: none; aspect-ratio: auto; min-height: 4.5rem; }
+    .entry-name { align-self: center; padding: 0.5rem 2.2rem 0.5rem 0.6rem; }
+
+    .pick-filters { grid-template-columns: 1fr; }
+    .pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
     .site-header { padding: 0.75rem 1rem; }
     .brand { flex: 1; font-size: 1.05rem; }
     .site-header .btn { padding: 0.5rem 0.85rem; font-size: 0.9rem; }

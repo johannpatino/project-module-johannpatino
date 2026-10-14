@@ -3,10 +3,12 @@ package io.everyonecodes.deliciousnessness.controller;
 import io.everyonecodes.deliciousnessness.dto.CategoryDto;
 import io.everyonecodes.deliciousnessness.dto.RecipeDto;
 import io.everyonecodes.deliciousnessness.dto.RecipeForm;
+import io.everyonecodes.deliciousnessness.dto.RecipeSummaryDto;
 import io.everyonecodes.deliciousnessness.model.Language;
 import io.everyonecodes.deliciousnessness.model.Season;
 import io.everyonecodes.deliciousnessness.service.CategoryService;
 import io.everyonecodes.deliciousnessness.service.IngredientService;
+import io.everyonecodes.deliciousnessness.service.PlannerService;
 import io.everyonecodes.deliciousnessness.service.RecipeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -26,12 +28,17 @@ public class WebController {
     private final RecipeService recipeService;
     private final CategoryService categoryService;
     private static final int MIN_INGREDIENT_ROWS = 3;
+    private static final int SEASONAL_LIMIT = 8;
+    private static final String YET_TO_TRY = "yet to try";
     private final IngredientService ingredientService;
+    private final PlannerService plannerService;
 
-    public WebController(RecipeService recipeService, CategoryService categoryService, IngredientService ingredientService) {
+    public WebController(RecipeService recipeService, CategoryService categoryService,
+                         IngredientService ingredientService, PlannerService plannerService) {
         this.recipeService = recipeService;
         this.categoryService = categoryService;
         this.ingredientService = ingredientService;
+        this.plannerService = plannerService;
     }
 
 
@@ -65,12 +72,38 @@ public class WebController {
         model.addAttribute("selectedSeasons", seasons == null ? List.of() : seasons);
         model.addAttribute("selectedIngredients",
                 ingredientService.findByIds(ingredients == null ? List.of() : ingredients));
+
+        // With no search or filter, the front page shows sections. Any search or filter shows one list.
+        boolean noFilters = (q == null || q.isBlank())
+                && (ingredients == null || ingredients.isEmpty())
+                && (categories == null || categories.isEmpty())
+                && (seasons == null || seasons.isEmpty());
+        model.addAttribute("showSections", noFilters);
+        if (noFilters) {
+            addHomeSections(model);
+        }
+    }
+
+    // "In season now": this season's recipes in the yet-to-try category, newest first.
+    // The front page shows the first 8. If the category doesn't exist (as on this computer), the section is empty.
+    private void addHomeSections(Model model) {
+        Season season = Season.current();
+        Long yetToTryId = categoryService.findIdByName(YET_TO_TRY).orElse(null);
+        List<RecipeSummaryDto> seasonal = yetToTryId == null
+                ? List.of()
+                : recipeService.search(null, null, List.of(yetToTryId), List.of(season));
+
+        model.addAttribute("currentSeason", season);
+        model.addAttribute("yetToTryId", yetToTryId);
+        model.addAttribute("seasonalTotal", seasonal.size());
+        model.addAttribute("seasonalRecipes", seasonal.subList(0, Math.min(SEASONAL_LIMIT, seasonal.size())));
     }
     @GetMapping("/{id}")
     public String detail(@PathVariable Long id, Model model) {
         RecipeDto recipe = recipeService.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe not found"));
         model.addAttribute("recipe", recipe);
+        model.addAttribute("plannerWeeks", plannerService.findWeekOptions());
         return "recipe-detail";
     }
 

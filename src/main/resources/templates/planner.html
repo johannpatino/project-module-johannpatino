@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Weekly planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="site-header">
+    <a class="brand" href="/recipes">Deliciousnessness</a>
+    <span style="flex:1"></span>
+    <a class="btn" href="/recipes">Recipes</a>
+    <a class="btn" href="/planner/history">Past recipes</a>
+    <a class="btn btn-primary" href="/recipes/new">+ Add a recipe</a>
+    <form th:action="@{/logout}" method="post" style="margin:0">
+        <button type="submit" class="btn">Log out</button>
+    </form>
+</header>
+
+<main class="page planner-page">
+
+    <div class="results-head">
+        <h1>Weekly planner</h1>
+        <div class="planner-actions">
+            <button type="button" class="btn btn-primary" data-open-dialog="add-recipe-dialog">Add recipe</button>
+        </div>
+    </div>
+
+    <section class="plan-week" th:each="week : ${weeks}" data-week th:data-week-id="${week.id()}">
+        <div class="plan-week-head">
+            <h2 th:text="|Week of ${#temporals.format(week.startDate(), 'd MMM yyyy')}|">Week of</h2>
+            <div class="planner-actions">
+                <a class="btn" th:href="@{/planner/weeks/{id}/shopping(id=${week.id()})}">Shopping list</a>
+                <form th:action="@{/planner/weeks/{id}/clear(id=${week.id()})}" method="post"
+                      data-confirm="Clear this week? This cannot be undone." style="margin:0">
+                    <button type="submit" class="btn btn-danger">Clear week</button>
+                </form>
+                <form th:if="${#lists.size(weeks) > 1}"
+                      th:action="@{/planner/weeks/{id}/delete(id=${week.id()})}" method="post"
+                      data-confirm="Remove this week and everything planned in it?" style="margin:0">
+                    <button type="submit" class="btn">Remove week</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Cards waiting to be placed. Dropping a card here takes it off its day. -->
+        <div class="unplaced-lane" data-drop data-day="" data-person="">
+            <h3 class="lane-title">Not placed yet <span class="hint">drag each card onto a day</span></h3>
+            <div class="lane-cards">
+                <th:block th:each="card : ${week.unplaced()}">
+                    <div th:replace="~{fragments/planner-picker :: card(${card}, null, null)}"></div>
+                </th:block>
+                <p class="hint" th:if="${#lists.isEmpty(week.unplaced())}">
+                    Added recipes show up here, one card per serving.
+                </p>
+            </div>
+        </div>
+
+        <div class="week">
+            <section class="day" th:each="day : ${week.days()}">
+                <h3 class="day-name" th:text="${#strings.capitalize(#strings.toLowerCase(day.day()))}">Monday</h3>
+                <div class="day-people">
+                    <div class="day-cell" data-drop th:data-day="${day.day()}" data-person="ELA">
+                        <span class="cell-title">Ela</span>
+                        <th:block th:each="card : ${day.ela()}">
+                            <div th:replace="~{fragments/planner-picker :: card(${card}, ${day.day()}, 'ELA')}"></div>
+                        </th:block>
+                    </div>
+                    <div class="day-cell" data-drop th:data-day="${day.day()}" data-person="JOHANN">
+                        <span class="cell-title">Johann</span>
+                        <th:block th:each="card : ${day.johann()}">
+                            <div th:replace="~{fragments/planner-picker :: card(${card}, ${day.day()}, 'JOHANN')}"></div>
+                        </th:block>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <form th:action="@{/planner/weeks}" method="post" class="add-week">
+        <button type="submit" class="btn btn-block">+ Add next week</button>
+    </form>
+</main>
+
+<!-- Used by drag and drop: planner.js fills in the card's new week, day and person, then submits. -->
+<form id="move-form" method="post" th:action="@{/planner/entries/0/move}" hidden>
+    <input type="hidden" name="weekId">
+    <input type="hidden" name="day">
+    <input type="hidden" name="person">
+</form>
+
+<dialog id="add-recipe-dialog" class="modal planner-dialog">
+    <form th:action="@{/planner/add}" method="post" data-planner-form>
+
+        <div class="dialog-head">
+            <h2>Add recipes</h2>
+            <button type="button" class="dialog-close" data-close-dialog aria-label="Close">&times;</button>
+        </div>
+        <p class="hint">Each serving becomes one card. Drag the cards onto the days afterwards.</p>
+
+        <div th:replace="~{fragments/planner-picker :: week-picker(${plannerWeeks})}"></div>
+
+        <div class="pick-filters">
+            <input type="search" id="pick-search" placeholder="Search recipes…" autocomplete="off"
+                   aria-label="Search recipes">
+            <select id="pick-season" aria-label="Season">
+                <option value="">All seasons</option>
+                <option th:each="s : ${seasons}" th:value="${s}" th:text="${#strings.toLowerCase(s)}">summer</option>
+            </select>
+            <select id="pick-category" aria-label="Category">
+                <option value="">All categories</option>
+                <option th:each="c : ${categories}" th:value="${c.id()}" th:text="${c.name()}">soup</option>
+            </select>
+        </div>
+
+        <div class="pick-grid">
+            <label class="pick-card" th:each="recipe : ${recipeOptions}"
+                   th:data-name="${#strings.toLowerCase(recipe.recipeName())}"
+                   th:data-season="${#strings.listJoin(recipe.seasons(), ' ')}"
+                   th:data-categories="${#strings.listJoin(recipe.categoryIds(), ' ')}">
+                <input type="checkbox" name="recipeIds" th:value="${recipe.id()}">
+                <span class="pick-media">
+                    <img th:if="${recipe.imageUrl()}" th:src="${recipe.imageUrl()}" alt="" loading="lazy">
+                    <span class="pick-media-empty" th:unless="${recipe.imageUrl()}">&#127859;</span>
+                </span>
+                <span class="pick-name" th:text="${recipe.recipeName()}">Recipe</span>
+            </label>
+        </div>
+        <p class="pick-empty" hidden>No recipes match those filters.</p>
+
+        <div class="modal-actions">
+            <button type="button" class="btn" data-close-dialog>Cancel</button>
+            <button type="submit" class="btn btn-primary" data-submit-planner disabled>Add to planner</button>
+        </div>
+    </form>
+</dialog>
+
+<div th:replace="~{fragments/confirm :: dialog}"></div>
+<script th:src="@{/js/confirm.js}"></script>
+<script th:src="@{/js/planner.js}"></script>
+</body>
+</html>

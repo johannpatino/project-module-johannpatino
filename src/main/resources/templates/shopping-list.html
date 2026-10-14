@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shopping list</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="site-header no-print">
+    <a class="brand" href="/recipes">Deliciousnessness</a>
+    <span style="flex:1"></span>
+    <a class="btn" href="/planner">Planner</a>
+    <a class="btn btn-primary" href="/recipes/new">+ Add a recipe</a>
+    <form th:action="@{/logout}" method="post" style="margin:0">
+        <button type="submit" class="btn">Log out</button>
+    </form>
+</header>
+
+<main class="page" data-printable>
+
+    <a class="back-link no-print" href="/planner">&larr; Back to planner</a>
+
+    <div class="results-head">
+        <div>
+            <h1>Shopping list</h1>
+            <p class="hint" th:text="|Week of ${#temporals.format(list.startDate(), 'd MMM yyyy')}|">Week of</p>
+        </div>
+        <div class="planner-actions no-print">
+            <button type="button" class="btn btn-primary" data-print>Print</button>
+            <form th:action="@{/planner/weeks/{id}/shopping/rebuild(id=${list.weekId()})}" method="post"
+                  th:data-confirm="${#lists.isEmpty(list.groups())} ? null : 'Update the lines from your recipes? Changes you made to those lines will be lost. Lines you added by hand stay.'"
+                  style="margin:0">
+                <button type="submit" class="btn"
+                        th:text="${#lists.isEmpty(list.groups())} ? 'Build from recipes' : 'Update from recipes'">Update from recipes</button>
+            </form>
+            <form th:if="${!#lists.isEmpty(list.groups())}"
+                  th:action="@{/planner/weeks/{id}/shopping/clear(id=${list.weekId()})}" method="post"
+                  data-confirm="Clear the whole shopping list? This removes every line, including the ones you added."
+                  style="margin:0">
+                <button type="submit" class="btn btn-danger">Clear list</button>
+            </form>
+        </div>
+    </div>
+
+    <p class="empty-state" th:if="${#lists.isEmpty(list.groups())}">
+        Nothing on the list yet. Build it from this week's recipes, or add items below.
+    </p>
+
+    <ul class="shop-list" th:unless="${#lists.isEmpty(list.groups())}">
+        <th:block th:each="group : ${list.groups()}">
+
+            <!-- A combined line: the total. Its parts are listed underneath (screen only). -->
+            <li class="shop-item shop-total" th:if="${#lists.size(group.sources()) > 1}">
+                <span class="shop-text">
+                    <span class="shop-amount" th:text="${group.amount()}">800 g</span>
+                    <span class="shop-name" th:text="${group.name()}">spaghetti</span>
+                </span>
+                <span class="shop-count no-print" th:text="|${#lists.size(group.sources())} lines|">2 lines</span>
+            </li>
+
+            <li class="shop-item" th:each="item : ${group.sources()}"
+                th:classappend="${#lists.size(group.sources()) > 1} ? 'is-part' : ''">
+                <span class="shop-text">
+                    <span class="shop-amount" th:text="${item.amount()}">400 g</span>
+                    <span class="shop-name" th:text="${item.name()}">spaghetti</span>
+                </span>
+
+                <details class="shop-edit no-print">
+                    <summary>Edit</summary>
+                    <form th:action="@{/planner/weeks/{w}/shopping/items/{i}(w=${list.weekId()},i=${item.id()})}"
+                          method="post" class="shop-form">
+                        <input type="text" name="name" th:value="${item.name()}" maxlength="128" required
+                               aria-label="Item name">
+                        <input type="text" name="amount" th:value="${item.amount()}" maxlength="64"
+                               placeholder="Amount, e.g. 400 g" aria-label="Amount">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </form>
+                    <form th:action="@{/planner/weeks/{w}/shopping/items/{i}/delete(w=${list.weekId()},i=${item.id()})}"
+                          method="post" style="margin:0">
+                        <button type="submit" class="btn btn-danger">Remove</button>
+                    </form>
+                </details>
+            </li>
+        </th:block>
+    </ul>
+
+    <form th:action="@{/planner/weeks/{id}/shopping/items(id=${list.weekId()})}" method="post"
+          class="shop-add no-print">
+        <input type="text" name="name" maxlength="128" placeholder="Add an item, e.g. toilet paper"
+               required aria-label="New item name">
+        <input type="text" name="amount" maxlength="64" placeholder="Amount" aria-label="New item amount">
+        <button type="submit" class="btn btn-primary">Add item</button>
+    </form>
+</main>
+
+<div th:replace="~{fragments/confirm :: dialog}"></div>
+<script th:src="@{/js/confirm.js}"></script>
+<script th:src="@{/js/planner.js}"></script>
+</body>
+</html>

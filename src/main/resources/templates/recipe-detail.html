@@ -15,6 +15,7 @@
 <header class="site-header">
     <a class="brand" href="/recipes">Deliciousnessness</a>
     <span style="flex:1"></span>
+    <a class="btn" href="/planner">Planner</a>
     <a class="btn btn-primary" href="/recipes/new">+ Add a recipe</a>
 </header>
 
@@ -99,6 +100,7 @@
             </dl>
 
             <div class="quick-actions">
+                <button type="button" class="btn btn-block" data-open-dialog="planner-day-dialog">Add to weekly planner</button>
                 <a class="btn btn-block" th:href="@{/recipes/{id}/edit(id=${recipe.id()})}">Edit recipe</a>
 
                 <form th:action="@{/recipes/{id}/delete(id=${recipe.id()})}" method="post"
@@ -109,7 +111,22 @@
         </aside>
     </div>
 </main>
+<dialog id="planner-day-dialog" class="modal">
+    <form th:action="@{/planner/add}" method="post" data-planner-form>
+        <h2>Add to weekly planner</h2>
+        <p th:text="|Each serving becomes one card. Pick the weeks to add ${recipe.recipeName()} to.|">Which weeks?</p>
+
+        <input type="hidden" name="recipeIds" th:value="${recipe.id()}">
+        <div th:replace="~{fragments/planner-picker :: week-picker(${plannerWeeks})}"></div>
+        <div class="modal-actions" style="margin-top:1.5rem">
+            <button type="button" class="btn" data-close-dialog>Cancel</button>
+            <button type="submit" class="btn btn-primary" data-submit-planner disabled>Add to planner</button>
+        </div>
+    </form>
+</dialog>
+
 <div th:replace="~{fragments/confirm :: dialog}"></div>
 <script th:src="@{/js/confirm.js}"></script>
+<script th:src="@{/js/planner.js}"></script>
 </body>
 </html>
