@@ -52,5 +52,12 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             """)
     List<Long> findIdsByAllSeasons(@Param("seasons") Collection<Season> seasons, @Param("requiredCount") long requiredCount);
 
+    @Query("""
+            SELECT DISTINCT r.id FROM Recipe r
+            JOIN r.seasons s
+            WHERE s IN :seasons
+            """)
+    List<Long> findIdsByAnySeason(@Param("seasons") Collection<Season> seasons);
+
     List<Recipe> findByCategoriesId(Long categoryId);
 }

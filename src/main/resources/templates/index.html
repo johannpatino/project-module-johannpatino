@@ -17,6 +17,8 @@
     <a class="brand" href="/recipes">Deliciousnessness</a>
 
     <form method="get" action="/recipes" class="filters">
+        <!-- Keeps "either season" when the list came from a front page "Show all" link. -->
+        <input type="hidden" name="seasonMatch" value="any" th:if="${anySeason}">
 
         <div class="searchbar">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
@@ -93,11 +95,11 @@
                 <section class="home-section">
                     <div class="section-head">
                         <div>
-                            <h2 th:text="|In season now: ${#strings.capitalize(#strings.toLowerCase(currentSeason))}|">In season now</h2>
+                            <h2 th:text="|In season now: ${seasonLabel}|">In season now</h2>
                             <p class="section-sub">Yet to try</p>
                         </div>
                         <a class="btn" th:if="${seasonalTotal > 8}"
-                           th:href="@{/recipes(seasons=${currentSeason},categories=${yetToTryId})}"
+                           th:href="@{/recipes(seasons=${currentSeasons},categories=${yetToTryId},seasonMatch='any')}"
                            th:text="|Show all ${seasonalTotal} &rarr;|">Show all</a>
                     </div>
 
@@ -126,6 +128,7 @@
             <th:block th:unless="${showSections}">
                 <div class="results-head">
                     <h1 th:text="${#strings.isEmpty(q)} ? 'All recipes' : |Results for “${q}”|">All recipes</h1>
+                    <p class="section-sub" th:if="${anySeason}">Recipes in either season.</p>
                     <p class="results-count"
                        th:text="${#lists.size(recipes)} + (${#lists.size(recipes)} == 1 ? ' recipe' : ' recipes')">0 recipes</p>
                 </div>

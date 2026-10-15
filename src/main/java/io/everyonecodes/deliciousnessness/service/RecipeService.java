@@ -50,6 +50,12 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public List<RecipeSummaryDto> search(String query, List<Long> ingredientIds, List<Long> categoryIds, List<Season> seasons) {
+        return search(query, ingredientIds, categoryIds, seasons, false);
+    }
+
+    // anySeason: a recipe matches when it is in at least one of the given seasons, not all of them.
+    @Transactional(readOnly = true)
+    public List<RecipeSummaryDto> search(String query, List<Long> ingredientIds, List<Long> categoryIds, List<Season> seasons, boolean anySeason) {
         Set<Long> matchingIds = null;
 
         if (query != null && !query.isBlank()) {
@@ -74,7 +80,9 @@ public class RecipeService {
 
         if (seasons != null && !seasons.isEmpty()) {
             Set<Season> distinctSeasons = new LinkedHashSet<>(seasons);
-            matchingIds = narrow(matchingIds, recipeRepository.findIdsByAllSeasons(distinctSeasons, distinctSeasons.size()));
+            matchingIds = narrow(matchingIds, anySeason
+                    ? recipeRepository.findIdsByAnySeason(distinctSeasons)
+                    : recipeRepository.findIdsByAllSeasons(distinctSeasons, distinctSeasons.size()));
         }
 
         if (matchingIds == null) {
