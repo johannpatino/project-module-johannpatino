@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edit ingredients</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="site-header">
+    <a class="brand" href="/recipes">Deliciousnessness</a>
+    <span style="flex:1"></span>
+    <a class="btn" href="/planner">Planner</a>
+    <a class="btn btn-primary" href="/recipes/new">+ Add a recipe</a>
+    <form th:action="@{/logout}" method="post" style="margin:0">
+        <button type="submit" class="btn">Log out</button>
+    </form>
+</header>
+
+<main class="page">
+
+    <a class="back-link" href="/planner">&larr; Back to planner</a>
+
+    <div class="results-head">
+        <h1>Edit ingredients</h1>
+    </div>
+    <p class="hint">Most used ingredients come first. For each unit, enter how many grams it weighs, and fill in the
+        nutrition per 100 g. Recipes use these numbers to show their nutrition, and the shopping list can add
+        different units together.</p>
+
+    <div class="ing-toolbar">
+        <input type="search" id="ing-search" placeholder="Search ingredient..." autocomplete="off">
+        <label><input type="checkbox" id="only-missing"> Only ingredients that need information</label>
+        <span class="ing-count" id="ing-count"></span>
+    </div>
+
+    <p class="empty-state" th:if="${#lists.isEmpty(ingredients)}">No recipes with ingredients yet.</p>
+
+    <div class="ing-list" id="ing-list">
+        <details class="ing-item" th:each="ing : ${ingredients}"
+                 th:id="|ingredient-${ing.id()}|"
+                 th:data-name="${#strings.toLowerCase(ing.name())}"
+                 th:data-incomplete="${ing.needsInformation()}">
+            <summary>
+                <span class="ing-name" th:text="${ing.name()}">onion</span>
+                <span class="ing-used"
+                      th:text="|${ing.recipeCount()} ${ing.recipeCount() == 1 ? 'recipe' : 'recipes'}|">3 recipes</span>
+                <span class="ing-badges">
+                    <span class="ing-badge" th:if="${ing.unitsWithoutGrams() > 0}"
+                          th:text="|${ing.unitsWithoutGrams()} ${ing.unitsWithoutGrams() == 1 ? 'unit' : 'units'} without grams|">1 unit without grams</span>
+                    <span class="ing-badge" th:unless="${ing.hasNutrition()}">no nutrition</span>
+                    <span class="ing-badge is-done" th:unless="${ing.needsInformation()}">done</span>
+                </span>
+            </summary>
+
+            <form class="ing-body" method="post" th:action="@{/planner/ingredients/{id}(id=${ing.id()})}">
+                <h3 class="ing-sub" th:unless="${#lists.isEmpty(ing.units())}">Grams per unit</h3>
+                <div class="unit-row" th:each="u : ${ing.units()}">
+                    <span class="unit-label" th:text="${u.label()}">cup</span>
+                    <span class="unit-used"
+                          th:text="|used in ${u.recipeCount()} ${u.recipeCount() == 1 ? 'recipe' : 'recipes'}|">used in 3 recipes</span>
+                    <span class="unit-equals">
+                        <span th:text="|1 ${#strings.isEmpty(u.unit()) ? 'piece' : u.unit()} =|">1 cup =</span>
+                        <span class="fixed" th:if="${u.fixed()}" th:text="|${u.grams()} g|">1 g</span>
+                        <th:block th:unless="${u.fixed()}">
+                            <input type="number" step="any" min="0" placeholder="grams"
+                                   th:name="|grams:${u.unit()}|" th:value="${u.grams()}">
+                            g
+                        </th:block>
+                    </span>
+                </div>
+
+                <h3 class="ing-sub">Nutrition per 100 g</h3>
+                <div class="nutr-grid">
+                    <label class="nutr-field" th:each="n : ${ing.nutrients()}"
+                           th:classappend="${n.nutrient().isPart()} ? 'is-sub'">
+                        <span th:text="${n.nutrient().label()}">Calories</span>
+                        <span class="nutr-input">
+                            <input type="number" step="any" min="0"
+                                   th:name="|nutrition:${n.nutrient().name()}|" th:value="${n.value()}">
+                            <span th:text="${n.nutrient().unit()}">kcal</span>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="ing-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <span class="ing-saved" th:if="${savedId != null and savedId == ing.id()}">Saved</span>
+                </div>
+            </form>
+        </details>
+    </div>
+</main>
+
+<script th:src="@{/js/ingredient-weights.js}"></script>
+</body>
+</html>

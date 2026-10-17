@@ -1353,3 +1353,98 @@ body.printing .shop-total { background: none; }
     .section-row td { display: block; padding: 0; }
 }
 
+/* ---------------------------------------------------------------
+   Edit ingredients and recipe nutrition
+   --------------------------------------------------------------- */
+.ing-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1.2rem; margin: 1.2rem 0 1rem; }
+.ing-toolbar input[type="search"] {
+    flex: 1 1 16rem; max-width: 24rem; padding: 0.6rem 0.9rem;
+    border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface);
+    font: inherit; color: var(--ink);
+}
+.ing-toolbar label { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.9rem; color: var(--ink-soft); }
+.ing-count { margin-left: auto; font-size: 0.85rem; color: var(--ink-faint); }
+
+.ing-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.ing-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.ing-item[open] { border-color: var(--accent); }
+.ing-item summary {
+    display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1.1rem;
+    cursor: pointer; list-style: none; user-select: none;
+}
+.ing-item summary::-webkit-details-marker { display: none; }
+.ing-item summary::before {
+    content: ""; width: 0.5rem; height: 0.5rem; flex: none;
+    border-right: 2px solid var(--ink-faint); border-bottom: 2px solid var(--ink-faint);
+    transform: rotate(-45deg); transition: transform 0.15s;
+}
+.ing-item[open] summary::before { transform: rotate(45deg); }
+.ing-name { font-weight: 600; flex: 1; }
+.ing-units { font-size: 0.82rem; color: var(--ink-faint); }
+.ing-badge {
+    font-size: 0.74rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent-dark); white-space: nowrap;
+}
+.ing-badge.is-done { background: #e8f3ea; color: #2f6b3d; }
+
+.ing-body { padding: 0.2rem 1.1rem 1.1rem; border-top: 1px solid var(--line); }
+.unit-row {
+    display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(8rem, 1fr) auto;
+    align-items: center; gap: 0.5rem 1rem; padding: 0.65rem 0; border-bottom: 1px solid var(--line);
+}
+.unit-label { font-weight: 500; }
+.unit-used { font-size: 0.82rem; color: var(--ink-faint); }
+.unit-equals { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; color: var(--ink-soft); }
+.unit-equals input {
+    width: 6.5rem; padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    font: inherit; text-align: right; background: var(--bg); color: var(--ink);
+}
+.unit-equals input:focus { outline: 2px solid var(--accent); outline-offset: 1px; background: #fff; }
+.unit-equals .fixed { font-weight: 600; color: var(--ink); }
+.ing-actions { display: flex; align-items: center; gap: 1rem; margin-top: 0.9rem; }
+.ing-saved { font-size: 0.85rem; color: #2f6b3d; }
+
+@media (max-width: 40rem) {
+    .unit-row { grid-template-columns: 1fr; gap: 0.3rem; }
+    .ing-count { margin-left: 0; width: 100%; }
+}
+
+/* More on the ingredient rows */
+.ing-used { font-size: 0.82rem; color: var(--ink-faint); white-space: nowrap; }
+.ing-badges { display: inline-flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
+.ing-sub {
+    margin: 1rem 0 0.2rem; font-family: var(--sans); font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint);
+}
+.nutr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: 0.6rem 1.2rem; margin-top: 0.5rem; }
+.nutr-field { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.9rem; color: var(--ink-soft); }
+.nutr-field.is-sub { padding-left: 0.8rem; font-size: 0.85rem; }
+.nutr-input { display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; }
+.nutr-input input {
+    width: 5.2rem; padding: 0.45rem 0.6rem; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    font: inherit; text-align: right; background: var(--bg); color: var(--ink);
+}
+.nutr-input input:focus { outline: 2px solid var(--accent); outline-offset: 1px; background: #fff; }
+
+/* Nutrition on the recipe page */
+.nutrition { margin: 2rem 0; }
+.nutrition-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.nutrition-head h2 { margin: 0; }
+.nutr-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.7rem; margin-top: 1rem; }
+.nutr-tile {
+    display: flex; flex-direction: column; gap: 0.1rem; padding: 0.8rem 1rem;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.nutr-tile.is-main { background: var(--accent-soft); border-color: transparent; }
+.nutr-value { font-family: var(--display); font-size: 1.5rem; font-weight: 700; }
+.nutr-value small { font-family: var(--sans); font-size: 0.78rem; font-weight: 500; color: var(--ink-soft); }
+.nutr-name { font-size: 0.82rem; color: var(--ink-soft); }
+.nutr-subline { font-size: 0.75rem; color: var(--ink-faint); }
+.nutr-note { margin: 0.9rem 0 0; font-size: 0.85rem; color: var(--ink-soft); }
+.nutr-note.is-partial { color: var(--accent-dark); }
+.nutr-missing { list-style: none; margin: 0.4rem 0 0; padding: 0; font-size: 0.82rem; color: var(--ink-soft); }
+.nutr-missing li { padding: 0.15rem 0; }
+.nutr-missing span { color: var(--ink-faint); }
+.nutr-missing a { margin-left: 0.4rem; }
+.nutr-basis { font-size: 0.85rem; color: var(--ink-soft); }
+.nutr-serving { margin-top: 0.35rem; padding-top: 0.35rem; border-top: 1px solid var(--line); font-size: 0.78rem; font-weight: 600; color: var(--accent-dark); }

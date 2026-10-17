@@ -8,6 +8,7 @@ import io.everyonecodes.deliciousnessness.model.Language;
 import io.everyonecodes.deliciousnessness.model.Season;
 import io.everyonecodes.deliciousnessness.service.CategoryService;
 import io.everyonecodes.deliciousnessness.service.IngredientService;
+import io.everyonecodes.deliciousnessness.service.NutritionService;
 import io.everyonecodes.deliciousnessness.service.PlannerService;
 import io.everyonecodes.deliciousnessness.service.RecipeService;
 import org.springframework.http.HttpStatus;
@@ -33,13 +34,16 @@ public class WebController {
     private static final String YET_TO_TRY = "yet to try";
     private final IngredientService ingredientService;
     private final PlannerService plannerService;
+    private final NutritionService nutritionService;
 
     public WebController(RecipeService recipeService, CategoryService categoryService,
-                         IngredientService ingredientService, PlannerService plannerService) {
+                         IngredientService ingredientService, PlannerService plannerService,
+                         NutritionService nutritionService) {
         this.recipeService = recipeService;
         this.categoryService = categoryService;
         this.ingredientService = ingredientService;
         this.plannerService = plannerService;
+        this.nutritionService = nutritionService;
     }
 
 
@@ -110,6 +114,7 @@ public class WebController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe not found"));
         model.addAttribute("recipe", recipe);
         model.addAttribute("plannerWeeks", plannerService.findWeekOptions());
+        model.addAttribute("nutrition", nutritionService.forRecipe(recipe));
         return "recipe-detail";
     }
 

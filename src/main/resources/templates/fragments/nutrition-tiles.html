@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- The boxes of a recipe's nutrition: per serving, with the whole dish under each. -->
+<div th:fragment="tiles(tiles)" class="nutr-tiles">
+    <div class="nutr-tile" th:each="tile : ${tiles}" th:classappend="${tile.label() == 'Calories'} ? 'is-main'">
+        <span class="nutr-value"><span th:text="${tile.amount()}">649</span><small th:text="|&nbsp;${tile.unit()}|"> kcal</small></span>
+        <span class="nutr-name" th:text="${tile.label()}">Calories</span>
+        <span class="nutr-subline" th:if="${tile.subLabel() != null}"
+              th:text="|${tile.subLabel()} ${tile.subAmount()} ${tile.subUnit()}|">saturated 19 g</span>
+        <span class="nutr-serving" th:text="|Whole dish: ${tile.wholeDish()} ${tile.unit()}|">Whole dish: 2595 kcal</span>
+    </div>
+</div>
+
+</body>
+</html>

@@ -77,6 +77,34 @@
                 </th:block>
             </ul>
 
+            <section class="nutrition" th:if="${nutrition.totalLines() > 0}">
+                <div class="nutrition-head">
+                    <h2>Nutrition</h2>
+                    <span class="nutr-basis" th:if="${nutrition.hasValues()}"
+                          th:text="|Per serving &middot; the dish makes ${nutrition.servings()} ${nutrition.servings() == 1 ? 'serving' : 'servings'}|">Per serving</span>
+                </div>
+
+                <th:block th:if="${nutrition.hasValues()}">
+                    <div th:replace="~{fragments/nutrition-tiles :: tiles(${nutrition.tiles()})}"></div>
+                </th:block>
+
+                <p class="nutr-note" th:classappend="${!nutrition.isComplete()} ? 'is-partial'"
+                   th:text="${nutrition.isComplete()}
+                       ? |Calculated from all ${nutrition.totalLines()} ingredients.|
+                       : (${nutrition.hasValues()}
+                           ? |Calculated from ${nutrition.usedLines()} of ${nutrition.totalLines()} ingredients, so the real values are a bit higher.|
+                           : 'No nutrition yet: none of the ingredients has the grams and nutrition values it needs.')">
+                    Calculated from all ingredients.</p>
+                <ul class="nutr-missing" th:unless="${nutrition.isComplete()}">
+                    <li th:each="gap : ${nutrition.gaps()}">
+                        <strong th:text="${gap.ingredientName()}">tomato paste</strong>
+                        <span th:text="${gap.reason()}">no grams for tbsp</span>
+                        <a th:if="${gap.fixable()}"
+                           th:href="@{/planner/ingredients} + '#ingredient-' + ${gap.ingredientId()}">Fill in &rarr;</a>
+                    </li>
+                </ul>
+            </section>
+
             <h2>Instructions</h2>
             <div class="instructions" th:text="${recipe.instructions()}">Steps go here.</div>
         </div>
@@ -92,6 +120,10 @@
                 <div class="quick-row">
                     <dt>Servings</dt>
                     <dd th:text="${recipe.servings()}">2</dd>
+                </div>
+                <div class="quick-row" th:if="${nutrition.kcalPerServing() != null}">
+                    <dt>Calories</dt>
+                    <dd th:text="|${nutrition.kcalPerServing()} kcal / serving|">725 kcal / serving</dd>
                 </div>
                 <div class="quick-row" th:if="${recipe.sourceUrl()}">
                     <dt>Source</dt>
