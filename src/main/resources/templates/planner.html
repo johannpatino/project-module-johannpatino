@@ -80,6 +80,8 @@
                         </th:block>
                     </div>
                 </div>
+                <button type="button" class="btn btn-small no-print day-nutrition-btn" data-day-nutrition
+                        th:data-week-id="${week.id()}" th:data-day="${day.day()}">Nutrition</button>
             </section>
         </div>
     </section>
@@ -140,6 +142,15 @@
             <button type="submit" class="btn btn-primary" data-submit-planner disabled>Add to planner</button>
         </div>
     </form>
+</dialog>
+
+<!-- The day nutrition popup. planner.js fills in the body from the server. -->
+<dialog id="day-nutrition-dialog" class="modal planner-dialog">
+    <div class="dialog-head">
+        <h2>Nutrition for the day</h2>
+        <button type="button" class="dialog-close" data-close-dialog aria-label="Close">&times;</button>
+    </div>
+    <div data-day-nutrition-body></div>
 </dialog>
 
 <div th:replace="~{fragments/confirm :: dialog}"></div>

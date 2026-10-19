@@ -165,6 +165,24 @@
         button.addEventListener('click', () => button.closest('dialog').close());
     });
 
+    // The Nutrition button under a day: the totals are fetched when it is clicked, not on page load.
+    document.querySelectorAll('[data-day-nutrition]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const dialog = document.getElementById('day-nutrition-dialog');
+            const body = dialog.querySelector('[data-day-nutrition-body]');
+            body.textContent = 'Loading...';
+            dialog.showModal();
+            try {
+                const url = `/planner/weeks/${button.dataset.weekId}/days/${button.dataset.day}/nutrition`;
+                const response = await fetch(url, {credentials: 'same-origin'});
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                body.innerHTML = await response.text();
+            } catch (error) {
+                body.textContent = "Couldn't load this day's nutrition. Try again.";
+            }
+        });
+    });
+
     // "Add to planner" stays disabled until at least one week and one recipe are chosen.
     document.querySelectorAll('[data-planner-form]').forEach(form => {
         form.addEventListener('change', () => refreshSubmit(form));

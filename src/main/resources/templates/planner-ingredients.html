@@ -34,8 +34,8 @@
         different units together.</p>
 
     <div class="ing-toolbar">
-        <input type="search" id="ing-search" placeholder="Search ingredient..." autocomplete="off">
-        <label><input type="checkbox" id="only-missing"> Only ingredients that need information</label>
+        <input type="search" id="ing-search" name="q" th:value="${searchText}" placeholder="Search ingredient..." autocomplete="off">
+        <label><input type="checkbox" id="only-missing" th:checked="${onlyMissing}"> Only ingredients that need information</label>
         <span class="ing-count" id="ing-count"></span>
     </div>
 
@@ -59,11 +59,14 @@
             </summary>
 
             <form class="ing-body" method="post" th:action="@{/planner/ingredients/{id}(id=${ing.id()})}">
+                <input type="hidden" name="q" th:value="${searchText}">
+                <input type="hidden" name="missing" th:value="${onlyMissing} ? 'true' : ''">
+
                 <h3 class="ing-sub" th:unless="${#lists.isEmpty(ing.units())}">Grams per unit</h3>
                 <div class="unit-row" th:each="u : ${ing.units()}">
                     <span class="unit-label" th:text="${u.label()}">cup</span>
-                    <span class="unit-used"
-                          th:text="|used in ${u.recipeCount()} ${u.recipeCount() == 1 ? 'recipe' : 'recipes'}|">used in 3 recipes</span>
+                    <a class="unit-used" th:href="@{/recipes(ingredients=${ing.id()})}" title="Show the recipes that use this ingredient"
+                       th:text="|used in ${u.recipeCount()} ${u.recipeCount() == 1 ? 'recipe' : 'recipes'}|">used in 3 recipes</a>
                     <span class="unit-equals">
                         <span th:text="|1 ${#strings.isEmpty(u.unit()) ? 'piece' : u.unit()} =|">1 cup =</span>
                         <span class="fixed" th:if="${u.fixed()}" th:text="|${u.grams()} g|">1 g</span>

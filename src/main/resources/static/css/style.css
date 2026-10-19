@@ -1394,6 +1394,8 @@ body.printing .shop-total { background: none; }
 }
 .unit-label { font-weight: 500; }
 .unit-used { font-size: 0.82rem; color: var(--ink-faint); }
+a.unit-used { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+a.unit-used:hover { color: var(--accent-dark); }
 .unit-equals { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; color: var(--ink-soft); }
 .unit-equals input {
     width: 6.5rem; padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: var(--radius-sm);
@@ -1448,3 +1450,32 @@ body.printing .shop-total { background: none; }
 .nutr-missing a { margin-left: 0.4rem; }
 .nutr-basis { font-size: 0.85rem; color: var(--ink-soft); }
 .nutr-serving { margin-top: 0.35rem; padding-top: 0.35rem; border-top: 1px solid var(--line); font-size: 0.78rem; font-weight: 600; color: var(--accent-dark); }
+
+/* ---------------------------------------------------------------
+   Day nutrition popup (weekly planner)
+   --------------------------------------------------------------- */
+.btn-small { padding: 0.35rem 0.6rem; font-size: 0.8rem; width: 100%; }
+.day-nutrition-btn { margin-top: 0.6rem; }
+.day-nutrition h3 { font-family: var(--display); font-size: 1.4rem; margin: 0 0 0.8rem; }
+.day-totals { width: 100%; border-collapse: collapse; font-size: 0.9rem; table-layout: fixed; }
+.day-totals th,
+.day-totals td { padding: 0.45rem 0.3rem; border-bottom: 1px solid var(--line); text-align: right; }
+.day-totals th:first-child,
+.day-totals td:first-child { width: 36%; }
+.day-totals th:first-child,
+.day-totals td:first-child { text-align: left; }
+.day-totals th { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint); }
+.day-totals td:last-child { font-weight: 600; }
+.day-totals tr.is-sub td { color: var(--ink-soft); font-size: 0.85rem; }
+.day-totals tr.is-sub td:first-child { padding-left: 1.1rem; }
+.day-sub {
+    display: flex; justify-content: space-between; margin: 1.2rem 0 0;
+    font-family: var(--sans); font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint);
+}
+.day-sub span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.day-dishes { list-style: none; margin: 0.4rem 0 0; padding: 0; font-size: 0.9rem; }
+.day-dishes li { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.45rem 0; border-bottom: 1px solid var(--line); }
+.day-dishes li > span:first-child { flex: 1; }
+.day-dish-who { font-size: 0.8rem; color: var(--ink-faint); }
+.day-dish-kcal { font-weight: 600; white-space: nowrap; }

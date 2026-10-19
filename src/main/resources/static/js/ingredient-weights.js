@@ -9,16 +9,25 @@
 
     function filter() {
         const query = search.value.trim().toLowerCase();
+        // The ingredient just saved stays on screen, even when it is complete now.
+        const justSaved = location.hash.slice(1);
         let shown = 0;
         for (const item of items) {
-            const visible = (!query || item.dataset.name.includes(query))
+            const matches = (!query || item.dataset.name.includes(query))
                 && (!onlyMissing.checked || item.dataset.incomplete === 'true');
+            const visible = matches || item.id === justSaved;
             item.hidden = !visible;
             if (visible) shown++;
         }
         const todo = items.filter(item => item.dataset.incomplete === 'true').length;
         count.textContent = shown + ' of ' + items.length + ' ingredients · ' + todo + ' still need information';
     }
+
+    // Saving sends the search and the tick box with the form, so the page comes back the same way.
+    list.querySelectorAll('.ing-body').forEach(form => form.addEventListener('submit', () => {
+        form.elements.q.value = search.value.trim();
+        form.elements.missing.value = onlyMissing.checked ? 'true' : '';
+    }));
 
     search.addEventListener('input', filter);
     onlyMissing.addEventListener('change', filter);

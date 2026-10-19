@@ -8,8 +8,7 @@ public enum Nutrient {
     SATURATED_FAT("of which saturated", "g"),
     CARBS("Carbohydrates", "g"),
     SUGAR("of which sugars", "g"),
-    FIBER("Fiber", "g"),
-    SALT("Salt", "g");
+    FIBER("Fiber", "g");
 
     private final String label;
     private final String unit;

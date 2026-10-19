@@ -3,6 +3,7 @@ package io.everyonecodes.deliciousnessness.controller;
 import io.everyonecodes.deliciousnessness.model.PlannerPerson;
 import io.everyonecodes.deliciousnessness.model.Season;
 import io.everyonecodes.deliciousnessness.service.CategoryService;
+import io.everyonecodes.deliciousnessness.service.NutritionService;
 import io.everyonecodes.deliciousnessness.service.PlannerService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,10 +18,13 @@ public class PlannerController {
 
     private final PlannerService plannerService;
     private final CategoryService categoryService;
+    private final NutritionService nutritionService;
 
-    public PlannerController(PlannerService plannerService, CategoryService categoryService) {
+    public PlannerController(PlannerService plannerService, CategoryService categoryService,
+                             NutritionService nutritionService) {
         this.plannerService = plannerService;
         this.categoryService = categoryService;
+        this.nutritionService = nutritionService;
     }
 
     @GetMapping
@@ -79,5 +83,13 @@ public class PlannerController {
     public String removeWeek(@PathVariable Long id) {
         plannerService.removeWeek(id);
         return "redirect:/planner";
+    }
+
+    // The nutrition popup under a day column. Returns an HTML fragment that planner.js puts into the popup.
+    @GetMapping("/weeks/{weekId}/days/{day}/nutrition")
+    public String dayNutrition(@PathVariable Long weekId, @PathVariable DayOfWeek day, Model model) {
+        model.addAttribute("day", day);
+        model.addAttribute("nutrition", nutritionService.forDay(weekId, day));
+        return "fragments/day-nutrition :: totals";
     }
 }

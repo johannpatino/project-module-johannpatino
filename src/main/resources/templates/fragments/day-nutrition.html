@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- The nutrition popup for one day of the planner: Ela, Johann and the whole day, plus the dishes. -->
+<div th:fragment="totals" class="day-nutrition">
+    <h3 th:text="${#strings.capitalize(#strings.toLowerCase(day))}">Monday</h3>
+
+    <p class="empty-state" th:if="${#lists.isEmpty(nutrition.dishes())}">Nothing planned for this day yet.</p>
+
+    <th:block th:unless="${#lists.isEmpty(nutrition.dishes())}">
+
+        <table class="day-totals" th:if="${nutrition.hasValues()}">
+            <thead>
+                <tr><th></th><th>Ela</th><th>Johann</th><th>Whole day</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="row : ${nutrition.rows()}" th:classappend="${row.part()} ? 'is-sub'">
+                    <td th:text="|${row.label()} (${row.unit()})|">Calories (kcal)</td>
+                    <td th:text="${row.ela()}">0</td>
+                    <td th:text="${row.johann()}">0</td>
+                    <td th:text="${row.day()}">0</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="nutr-note" th:unless="${nutrition.hasValues()}">
+            None of these dishes has the grams and nutrition values it needs yet.
+        </p>
+
+        <p class="nutr-note" th:classappend="${!nutrition.isComplete()} ? 'is-partial'"
+           th:text="${nutrition.isComplete()}
+               ? 'Every dish is counted in full.'
+               : |${nutrition.completeDishes()} of ${#lists.size(nutrition.dishes())} ${#lists.size(nutrition.dishes()) == 1 ? 'dish' : 'dishes'} counted in full. The rest are missing some ingredients, so the real values are a bit higher.|">
+            Every dish is counted in full.</p>
+
+        <p class="nutr-note" th:if="${nutrition.unassignedDishes() > 0}">
+            Some dishes have no person, so they count in the whole-day column only.
+        </p>
+
+        <h4 class="day-sub">Dishes <span>kcal per serving</span></h4>
+        <ul class="day-dishes">
+            <li th:each="dish : ${nutrition.dishes()}">
+                <span th:text="${dish.name()}">Chickpea curry</span>
+                <span class="day-dish-who" th:if="${dish.person() != null}" th:text="${dish.person()}">Ela</span>
+                <span class="day-dish-kcal" th:text="${dish.kcalPerServing() == null} ? '–' : |${dish.kcalPerServing()} kcal|">649 kcal</span>
+            </li>
+        </ul>
+
+        <ul class="nutr-missing" th:unless="${nutrition.isComplete()}">
+            <li th:each="gap : ${nutrition.gaps()}">
+                <strong th:text="${gap.ingredientName()}">tomato paste</strong>
+                <span th:text="${gap.reason()}">no grams for tbsp</span>
+                <a th:if="${gap.fixable()}"
+                   th:href="@{/planner/ingredients} + '#ingredient-' + ${gap.ingredientId()}">Fill in &rarr;</a>
+            </li>
+        </ul>
+    </th:block>
+</div>
+
+</body>
+</html>
