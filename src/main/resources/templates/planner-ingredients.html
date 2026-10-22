@@ -48,14 +48,15 @@
                  th:data-incomplete="${ing.needsInformation()}">
             <summary>
                 <span class="ing-name" th:text="${ing.name()}">onion</span>
-                <span class="ing-used"
-                      th:text="|${ing.recipeCount()} ${ing.recipeCount() == 1 ? 'recipe' : 'recipes'}|">3 recipes</span>
                 <span class="ing-badges">
                     <span class="ing-badge" th:if="${ing.unitsWithoutGrams() > 0}"
                           th:text="|${ing.unitsWithoutGrams()} ${ing.unitsWithoutGrams() == 1 ? 'unit' : 'units'} without grams|">1 unit without grams</span>
                     <span class="ing-badge" th:unless="${ing.hasNutrition()}">no nutrition</span>
                     <span class="ing-badge is-done" th:unless="${ing.needsInformation()}">done</span>
                 </span>
+                <a class="ing-recipes" th:href="@{/recipes(ingredients=${ing.id()})}"
+                   title="Show every recipe that uses this ingredient"
+                   th:text="|${ing.recipeCount()} ${ing.recipeCount() == 1 ? 'recipe' : 'recipes'} →|">3 recipes →</a>
             </summary>
 
             <form class="ing-body" method="post" th:action="@{/planner/ingredients/{id}(id=${ing.id()})}">
@@ -65,8 +66,6 @@
                 <h3 class="ing-sub" th:unless="${#lists.isEmpty(ing.units())}">Grams per unit</h3>
                 <div class="unit-row" th:each="u : ${ing.units()}">
                     <span class="unit-label" th:text="${u.label()}">cup</span>
-                    <a class="unit-used" th:href="@{/recipes(ingredients=${ing.id()})}" title="Show the recipes that use this ingredient"
-                       th:text="|used in ${u.recipeCount()} ${u.recipeCount() == 1 ? 'recipe' : 'recipes'}|">used in 3 recipes</a>
                     <span class="unit-equals">
                         <span th:text="|1 ${#strings.isEmpty(u.unit()) ? 'piece' : u.unit()} =|">1 cup =</span>
                         <span class="fixed" th:if="${u.fixed()}" th:text="|${u.grams()} g|">1 g</span>

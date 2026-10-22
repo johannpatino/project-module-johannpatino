@@ -287,3 +287,27 @@
         list.hidden = true;
     }
 })();
+
+// Save runs once per click. A second click (or Enter) while the first save is still going is ignored,
+// so the recipe can't be sent twice. Going back to this page brings the button back.
+(function () {
+    const saveForm = document.querySelector('form[action="/recipes/save"]');
+    if (!saveForm) return;
+
+    const saveButton = saveForm.querySelector('button[type="submit"]');
+
+    saveForm.addEventListener('submit', event => {
+        if (saveForm.dataset.saving) {
+            event.preventDefault();
+            return;
+        }
+        saveForm.dataset.saving = 'true';
+        saveButton.disabled = true;
+    });
+
+    // The browser can show this page again from its cache, still marked as saving.
+    window.addEventListener('pageshow', () => {
+        delete saveForm.dataset.saving;
+        saveButton.disabled = false;
+    });
+})();

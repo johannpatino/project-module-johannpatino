@@ -69,6 +69,41 @@ public class RecipeForm {
         return form;
     }
 
+    // The database column sizes. A longer value would fail the save, so the form is shown again instead.
+    private static final int RECIPE_NAME_MAX = 255;
+    private static final int URL_MAX = 2048;
+    private static final int CATEGORY_MAX = 64;
+    private static final int INGREDIENT_NAME_MAX = 128;
+    private static final int UNIT_MAX = 32;
+    private static final int PREPARATION_MAX = 128;
+    private static final int SECTION_MAX = 64;
+
+    // Everything that is too long for its column. Empty when the form can be saved.
+    public List<String> problems() {
+        List<String> problems = new ArrayList<>();
+        tooLong(problems, "The recipe name", recipeName, RECIPE_NAME_MAX);
+        tooLong(problems, "The image link", imageUrl, URL_MAX);
+        tooLong(problems, "The source link", sourceUrl, URL_MAX);
+        if (newCategories != null) {
+            for (String category : newCategories.split(",")) {
+                tooLong(problems, "A category name", category.trim(), CATEGORY_MAX);
+            }
+        }
+        for (IngredientLine line : ingredients) {
+            tooLong(problems, "An ingredient name", line.getName(), INGREDIENT_NAME_MAX);
+            tooLong(problems, "A unit", line.getUnit(), UNIT_MAX);
+            tooLong(problems, "A preparation", line.getPreparation(), PREPARATION_MAX);
+            tooLong(problems, "A section name", line.getSection(), SECTION_MAX);
+        }
+        return problems.stream().distinct().toList();
+    }
+
+    private static void tooLong(List<String> problems, String label, String value, int max) {
+        if (value != null && value.length() > max) {
+            problems.add(label + " is longer than " + max + " characters. Shorten it and save again.");
+        }
+    }
+
     public void padTo(int size) {
         while (ingredients.size() < size) {
             ingredients.add(new IngredientLine());

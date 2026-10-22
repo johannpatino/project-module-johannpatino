@@ -24,11 +24,15 @@
 
     <form th:action="@{/recipes/save}" th:object="${form}" method="post" class="form-card">
 
+        <div class="form-problems" th:if="${problems}">
+            <p th:each="problem : ${problems}" th:text="${problem}">Problem</p>
+        </div>
+
         <input type="hidden" th:field="*{id}">
 
         <label class="field">
             <span>Recipe name</span>
-            <input type="text" th:field="*{recipeName}" placeholder="e.g. Pasta Carbonara" required>
+            <input type="text" th:field="*{recipeName}" placeholder="e.g. Pasta Carbonara" maxlength="255" required>
         </label>
 
         <div class="field-row">
@@ -89,7 +93,7 @@
                     <td></td>
                     <td></td>
                     <td colspan="4">
-                        <input type="text" class="ingredient-section"
+                        <input type="text" class="ingredient-section" maxlength="64"
                                placeholder="Section name"
                                th:field="*{ingredients[__${stat.index}__].section}">
                     </td>
@@ -101,7 +105,7 @@
                         <button type="button" class="section-toggle" title="Add a section heading above this line">+</button>
                     </td>
                     <td class="name-cell">
-                        <input type="text" class="ingredient-name" autocomplete="off"
+                        <input type="text" class="ingredient-name" autocomplete="off" maxlength="128"
                                placeholder="ingredient name"
                                th:field="*{ingredients[__${stat.index}__].name}">
                         <input type="hidden" th:field="*{ingredients[__${stat.index}__].ingredientId}">
@@ -116,9 +120,9 @@
                                placeholder="20"
                                th:field="*{ingredients[__${stat.index}__].quantity}"></td>
                     <td class="unit-cell"><input type="text" placeholder="g"
-                               th:field="*{ingredients[__${stat.index}__].unit}"></td>
+                               th:field="*{ingredients[__${stat.index}__].unit}" maxlength="32"></td>
                     <td class="prep-cell"><input type="text" placeholder="chopped"
-                               th:field="*{ingredients[__${stat.index}__].preparation}"></td>
+                               th:field="*{ingredients[__${stat.index}__].preparation}" maxlength="128"></td>
                     <td class="remove-cell">
                         <button type="button" class="row-remove" aria-label="Remove row">&times;</button>
                     </td>
@@ -132,7 +136,7 @@
                     <td></td>
                     <td></td>
                     <td colspan="4">
-                        <input type="text" class="ingredient-section"
+                        <input type="text" class="ingredient-section" maxlength="64"
                                placeholder="Section name"
                                name="ingredients[__INDEX__].section">
                     </td>
@@ -144,7 +148,7 @@
                         <button type="button" class="section-toggle" title="Add a section heading above this line">+</button>
                     </td>
                     <td class="name-cell">
-                        <input type="text" class="ingredient-name" autocomplete="off"
+                        <input type="text" class="ingredient-name" autocomplete="off" maxlength="128"
                                placeholder="ingredient name" name="ingredients[__INDEX__].name">
                         <input type="hidden" name="ingredients[__INDEX__].ingredientId">
                         <select class="ingredient-language" hidden
@@ -157,9 +161,9 @@
                     <td class="qty-cell"><input type="text" inputmode="decimal" pattern="[0-9]*\.?[0-9]*"
                                placeholder="200"
                                name="ingredients[__INDEX__].quantity"></td>
-                    <td class="unit-cell"><input type="text" placeholder="g" name="ingredients[__INDEX__].unit"></td>
+                    <td class="unit-cell"><input type="text" placeholder="g" name="ingredients[__INDEX__].unit" maxlength="32"></td>
                     <td class="prep-cell"><input type="text" placeholder="chopped"
-                               name="ingredients[__INDEX__].preparation"></td>
+                               name="ingredients[__INDEX__].preparation" maxlength="128"></td>
                     <td class="remove-cell">
                         <button type="button" class="row-remove" aria-label="Remove row">&times;</button>
                     </td>

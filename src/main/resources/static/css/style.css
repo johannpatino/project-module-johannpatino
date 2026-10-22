@@ -1389,13 +1389,10 @@ body.printing .shop-total { background: none; }
 
 .ing-body { padding: 0.2rem 1.1rem 1.1rem; border-top: 1px solid var(--line); }
 .unit-row {
-    display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(8rem, 1fr) auto;
+    display: grid; grid-template-columns: minmax(7rem, 1fr) auto;
     align-items: center; gap: 0.5rem 1rem; padding: 0.65rem 0; border-bottom: 1px solid var(--line);
 }
 .unit-label { font-weight: 500; }
-.unit-used { font-size: 0.82rem; color: var(--ink-faint); }
-a.unit-used { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-a.unit-used:hover { color: var(--accent-dark); }
 .unit-equals { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; color: var(--ink-soft); }
 .unit-equals input {
     width: 6.5rem; padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: var(--radius-sm);
@@ -1412,7 +1409,12 @@ a.unit-used:hover { color: var(--accent-dark); }
 }
 
 /* More on the ingredient rows */
-.ing-used { font-size: 0.82rem; color: var(--ink-faint); white-space: nowrap; }
+.ing-recipes {
+    flex: none; padding: 0.3rem 0.75rem; border-radius: 999px; white-space: nowrap;
+    font-size: 0.8rem; font-weight: 600; text-decoration: none;
+    background: var(--accent-soft); color: var(--accent-dark);
+}
+.ing-recipes:hover { background: var(--accent); color: #fff; }
 .ing-badges { display: inline-flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
 .ing-sub {
     margin: 1rem 0 0.2rem; font-family: var(--sans); font-size: 0.72rem; font-weight: 600;
@@ -1479,3 +1481,6 @@ a.unit-used:hover { color: var(--accent-dark); }
 .day-dishes li > span:first-child { flex: 1; }
 .day-dish-who { font-size: 0.8rem; color: var(--ink-faint); }
 .day-dish-kcal { font-weight: 600; white-space: nowrap; }
+
+.form-problems { margin: 0 0 1rem; padding: 0.75rem 1rem; border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); }
+.form-problems p { margin: 0.2rem 0; }

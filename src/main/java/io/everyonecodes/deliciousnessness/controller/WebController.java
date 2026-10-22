@@ -11,10 +11,13 @@ import io.everyonecodes.deliciousnessness.service.IngredientService;
 import io.everyonecodes.deliciousnessness.service.NutritionService;
 import io.everyonecodes.deliciousnessness.service.PlannerService;
 import io.everyonecodes.deliciousnessness.service.RecipeService;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.TransactionException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
@@ -146,16 +149,44 @@ public class WebController {
     }
 
     @PostMapping("/save")
-    public String save(@ModelAttribute("form") RecipeForm form) {
+    public String save(@ModelAttribute("form") RecipeForm form, Model model) {
+        List<String> problems = form.problems();
+        if (!problems.isEmpty()) {
+            return showForm(form, problems, model);
+        }
+        try {
+            return "redirect:/recipes/" + saveWithOneRetry(form);
+        } catch (DataAccessException | TransactionException e) {
+            // Nothing typed is lost: the form comes back with everything still in it.
+            return showForm(form, List.of("The recipe couldn't be saved. Nothing you typed was lost, so try Save again."), model);
+        }
+    }
+
+    // Two saves at the same time can both try to add the same new ingredient. The second one fails,
+    // and its second try finds the ingredient the first save made.
+    private Long saveWithOneRetry(RecipeForm form) {
+        try {
+            return saveForm(form);
+        } catch (DataIntegrityViolationException e) {
+            return saveForm(form);
+        }
+    }
+
+    private Long saveForm(RecipeForm form) {
         Set<String> categoryNames = resolveCategoryNames(form);
 
-        Long id = (form.getId() == null)
+        return (form.getId() == null)
                 ? recipeService.create(form.toRequest(categoryNames)).id()
                 : recipeService.update(form.getId(), form.toRequest(categoryNames))
                 .map(RecipeDto::id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe not found"));
+    }
 
-        return "redirect:/recipes/" + id;
+    private String showForm(RecipeForm form, List<String> problems, Model model) {
+        model.addAttribute("form", form);
+        model.addAttribute("problems", problems);
+        addFormOptions(model);
+        return "recipe-form";
     }
 
     private Set<String> resolveCategoryNames(RecipeForm form) {
