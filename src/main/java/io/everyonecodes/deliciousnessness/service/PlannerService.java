@@ -18,17 +18,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class PlannerService {
 
-    private static final String BREAKFAST_TAG = "breakfast";
+    // A column's order: the position the cook gave each card, then the order the cards were added in.
+    private static final Comparator<PlannerEntry> BY_POSITION = Comparator
+            .comparing(PlannerEntry::getSortOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(PlannerEntry::getId);
 
     private final PlannerEntryRepository plannerEntryRepository;
     private final PlannerWeekRepository plannerWeekRepository;
@@ -124,11 +129,11 @@ public class PlannerService {
         }
     }
 
-    // Drag and drop. Puts a card on a day in one person's column, or among the unplaced cards when
-    // day and person are empty. weekId moves the card to another upcoming week, so a leftover portion
-    // can move from one week to the next. Only upcoming weeks can change.
+    // Drag and drop. Puts a card on a day in one person's column at the position it was dropped
+    // (the end when there is no position), or among the unplaced cards when day and person are empty.
+    // weekId moves the card to another upcoming week. Only upcoming weeks can change.
     @Transactional
-    public void moveEntry(Long entryId, Long weekId, DayOfWeek day, PlannerPerson person) {
+    public void moveEntry(Long entryId, Long weekId, DayOfWeek day, PlannerPerson person, Integer position) {
         if (day != null && person == null) return;
         PlannerWeek targetWeek = weekId == null
                 ? null
@@ -137,10 +142,42 @@ public class PlannerService {
         plannerEntryRepository.findById(entryId)
                 .filter(card -> card.getWeek() != null && isUpcoming(card.getWeek()))
                 .ifPresent(card -> {
+                    PlannerWeek fromWeek = card.getWeek();
+                    DayOfWeek fromDay = card.getDayOfWeek();
+                    PlannerPerson fromPerson = card.getPerson();
+
                     if (targetWeek != null) card.setWeek(targetWeek);
                     card.setDayOfWeek(day);
                     card.setPerson(day == null ? null : person);
+
+                    boolean sameColumn = fromWeek.getId().equals(card.getWeek().getId())
+                            && fromDay == day && fromPerson == card.getPerson();
+                    if (day != null) placeInColumn(card, position);
+                    if (fromDay != null && !sameColumn) renumber(columnOf(fromWeek, fromDay, fromPerson));
                 });
+    }
+
+    // Puts the card into its column at the position given, then numbers the whole column top to bottom.
+    private void placeInColumn(PlannerEntry card, Integer position) {
+        List<PlannerEntry> column = columnOf(card.getWeek(), card.getDayOfWeek(), card.getPerson()).stream()
+                .filter(other -> !other.getId().equals(card.getId()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        int index = position == null ? column.size() : Math.max(0, Math.min(position, column.size()));
+        column.add(index, card);
+        renumber(column);
+    }
+
+    private List<PlannerEntry> columnOf(PlannerWeek week, DayOfWeek day, PlannerPerson person) {
+        return plannerEntryRepository.findAllByWeekIdOrderByIdAsc(week.getId()).stream()
+                .filter(card -> card.getDayOfWeek() == day && card.getPerson() == person)
+                .sorted(BY_POSITION)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private static void renumber(List<PlannerEntry> column) {
+        for (int i = 0; i < column.size(); i++) {
+            column.get(i).setSortOrder(i);
+        }
     }
 
     // ifPresent, so a double-click on × doesn't error on the second press. Past cards stay.
@@ -216,20 +253,17 @@ public class PlannerService {
         return new PlannerWeekDto(week.getId(), week.getStartDate(), days, unplaced);
     }
 
-    // Breakfast dishes first in each person's column; otherwise the order the cards were added in.
     private List<PlannerEntryDto> cardsOf(List<PlannerEntry> cards, DayOfWeek day, PlannerPerson person) {
         return cards.stream()
                 .filter(card -> card.getDayOfWeek() == day && card.getPerson() == person)
+                .sorted(BY_POSITION)
                 .map(this::cardOf)
-                .sorted(Comparator.comparing(PlannerEntryDto::breakfast).reversed())
                 .toList();
     }
 
     private PlannerEntryDto cardOf(PlannerEntry card) {
         Recipe recipe = card.getRecipe();
-        boolean breakfast = recipe.getCategories().stream()
-                .anyMatch(category -> BREAKFAST_TAG.equalsIgnoreCase(category.getName()));
-        return new PlannerEntryDto(card.getId(), recipe.getId(), recipe.getRecipeName(), recipe.getImageUrl(), breakfast);
+        return new PlannerEntryDto(card.getId(), recipe.getId(), recipe.getRecipeName(), recipe.getImageUrl());
     }
 
     private static boolean isUpcoming(PlannerWeek week) {

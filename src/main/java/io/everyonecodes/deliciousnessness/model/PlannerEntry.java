@@ -35,6 +35,9 @@ public class PlannerEntry {
     @Column(length = 10)
     private PlannerPerson person;
 
+    // Where the card sits in its column, from the top. Set whenever a card is placed.
+    private Integer sortOrder;
+
     // Deleting a recipe also removes its cards (done by the database).
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "recipe_id")

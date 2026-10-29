@@ -56,8 +56,9 @@ public class PlannerController {
     public String move(@PathVariable Long id,
                        @RequestParam(required = false) Long weekId,
                        @RequestParam(required = false) DayOfWeek day,
-                       @RequestParam(required = false) PlannerPerson person) {
-        plannerService.moveEntry(id, weekId, day, person);
+                       @RequestParam(required = false) PlannerPerson person,
+                       @RequestParam(required = false) Integer position) {
+        plannerService.moveEntry(id, weekId, day, person, position);
         return "redirect:/planner";
     }
 

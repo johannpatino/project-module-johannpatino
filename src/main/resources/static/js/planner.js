@@ -112,19 +112,38 @@
         highlight(null);
 
         if (!zone) return;
+        const fromZone = current.card.closest('[data-drop]');
         const from = {
             week: current.card.closest('[data-week-id]').dataset.weekId,
             day: current.card.dataset.day || '',
             person: current.card.dataset.person || '',
+            position: current.card.dataset.day ? cardsIn(fromZone, null).indexOf(current.card) : null,
         };
         const to = {
             week: zone.closest('[data-week-id]').dataset.weekId,
             day: zone.dataset.day || '',
             person: zone.dataset.person || '',
+            position: zone.dataset.day ? positionIn(zone, current.card, event) : null,
         };
         // Dropped where it already was: nothing to do.
-        if (from.week === to.week && from.day === to.day && from.person === to.person) return;
+        if (from.week === to.week && from.day === to.day && from.person === to.person
+            && from.position === to.position) return;
         sendMove(current.card.dataset.entryId, to);
+    }
+
+    // The cards in one column, top to bottom, not counting the card being moved.
+    function cardsIn(zone, card) {
+        return [...zone.querySelectorAll('[data-card]')].filter(other => other !== card);
+    }
+
+    // Where the card lands in its column: above the first card whose middle is below the pointer.
+    function positionIn(zone, card, event) {
+        const cards = cardsIn(zone, card);
+        const index = cards.findIndex(other => {
+            const box = other.getBoundingClientRect();
+            return event.clientY < box.top + box.height / 2;
+        });
+        return index === -1 ? cards.length : index;
     }
 
     // Puts the card in its new place on the server, then the page reloads at the same scroll position.
@@ -133,6 +152,7 @@
         moveForm.elements.weekId.value = to.week;
         moveForm.elements.day.value = to.day;
         moveForm.elements.person.value = to.person;
+        moveForm.elements.position.value = to.position === null ? '' : String(to.position);
         try {
             sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
         } catch (e) {
