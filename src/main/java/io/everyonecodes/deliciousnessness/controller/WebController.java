@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.TransactionException;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -109,7 +111,10 @@ public class WebController {
         model.addAttribute("seasonLabel", seasons.stream().map(Season::label).collect(Collectors.joining(" & ")));
         model.addAttribute("yetToTryId", yetToTryId);
         model.addAttribute("seasonalTotal", seasonal.size());
-        model.addAttribute("seasonalRecipes", seasonal.subList(0, Math.min(SEASONAL_LIMIT, seasonal.size())));
+        // A different 8 each time the front page loads. "Show all" still lists them newest first.
+        List<RecipeSummaryDto> shuffled = new ArrayList<>(seasonal);
+        Collections.shuffle(shuffled);
+        model.addAttribute("seasonalRecipes", shuffled.subList(0, Math.min(SEASONAL_LIMIT, shuffled.size())));
     }
     @GetMapping("/{id}")
     public String detail(@PathVariable Long id, Model model) {

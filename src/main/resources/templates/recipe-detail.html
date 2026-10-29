@@ -21,7 +21,7 @@
 
 <main class="page">
 
-    <a class="back-link" href="/recipes">&larr; Back </a>
+    <a class="back-link" href="/recipes" data-back-link>&larr; Back </a>
 
     <img th:if="${recipe.imageUrl()}" th:src="${recipe.imageUrl()}"
          th:alt="${recipe.recipeName()}" class="hero">
@@ -144,12 +144,13 @@
     </div>
 </main>
 <dialog id="planner-day-dialog" class="modal">
-    <form th:action="@{/planner/add}" method="post" data-planner-form>
+    <form th:action="@{/planner/add}" method="post" data-planner-form data-add-in-place>
         <h2>Add to weekly planner</h2>
         <p th:text="|Each serving becomes one card. Pick the weeks to add ${recipe.recipeName()} to.|">Which weeks?</p>
 
         <input type="hidden" name="recipeIds" th:value="${recipe.id()}">
         <div th:replace="~{fragments/planner-picker :: week-picker(${plannerWeeks})}"></div>
+        <p class="form-problems" data-add-error hidden>Couldn't add it to the planner. Try again.</p>
         <div class="modal-actions" style="margin-top:1.5rem">
             <button type="button" class="btn" data-close-dialog>Cancel</button>
             <button type="submit" class="btn btn-primary" data-submit-planner disabled>Add to planner</button>
@@ -160,5 +161,7 @@
 <div th:replace="~{fragments/confirm :: dialog}"></div>
 <script th:src="@{/js/confirm.js}"></script>
 <script th:src="@{/js/planner.js}"></script>
+<script th:src="@{/js/back-link.js}"></script>
+<script th:src="@{/js/add-to-planner.js}"></script>
 </body>
 </html>

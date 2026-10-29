@@ -28,6 +28,8 @@ import java.util.Map;
 @Service
 public class PlannerService {
 
+    private static final String BREAKFAST_TAG = "breakfast";
+
     private final PlannerEntryRepository plannerEntryRepository;
     private final PlannerWeekRepository plannerWeekRepository;
     private final RecipeRepository recipeRepository;
@@ -214,16 +216,20 @@ public class PlannerService {
         return new PlannerWeekDto(week.getId(), week.getStartDate(), days, unplaced);
     }
 
+    // Breakfast dishes first in each person's column; otherwise the order the cards were added in.
     private List<PlannerEntryDto> cardsOf(List<PlannerEntry> cards, DayOfWeek day, PlannerPerson person) {
         return cards.stream()
                 .filter(card -> card.getDayOfWeek() == day && card.getPerson() == person)
                 .map(this::cardOf)
+                .sorted(Comparator.comparing(PlannerEntryDto::breakfast).reversed())
                 .toList();
     }
 
     private PlannerEntryDto cardOf(PlannerEntry card) {
         Recipe recipe = card.getRecipe();
-        return new PlannerEntryDto(card.getId(), recipe.getId(), recipe.getRecipeName(), recipe.getImageUrl());
+        boolean breakfast = recipe.getCategories().stream()
+                .anyMatch(category -> BREAKFAST_TAG.equalsIgnoreCase(category.getName()));
+        return new PlannerEntryDto(card.getId(), recipe.getId(), recipe.getRecipeName(), recipe.getImageUrl(), breakfast);
     }
 
     private static boolean isUpcoming(PlannerWeek week) {
