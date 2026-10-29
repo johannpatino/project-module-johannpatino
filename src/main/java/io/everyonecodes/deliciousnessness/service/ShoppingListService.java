@@ -246,6 +246,7 @@ public class ShoppingListService {
 
     // Grams in one unit: the built-in weights (g, kg), or the ingredient's own. Null when there is no value.
     private static Double gramsOf(String unit, Map<String, Double> ingredientGrams) {
+        if (Units.isCounted(unit)) return null;
         Double builtIn = Units.weightInGrams(unit);
         return builtIn != null ? builtIn : ingredientGrams.get(unit);
     }

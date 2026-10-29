@@ -138,32 +138,30 @@ public class IngredientWeightService {
     }
 
     // Units used to be saved as typed ("tl", "łyżeczka"). Each saved spelling moves to the app's name for that
-    // unit. If the ingredient already has grams for that unit, the first row entered is kept and the other is
-    // removed. Running it again does nothing.
+    // unit. If an ingredient has grams for that unit more than once, the first row entered is kept and the
+    // others are removed. Running it again does nothing.
     @Transactional
     public void mergeUnitSpellings() {
         List<IngredientUnitWeight> weights = weightRepository.findAll().stream()
                 .sorted(Comparator.comparing(IngredientUnitWeight::getId))
                 .toList();
 
-        Map<String, IngredientUnitWeight> kept = new HashMap<>();
-        List<IngredientUnitWeight> spellings = new ArrayList<>();
+        Set<String> taken = new HashSet<>();
+        List<IngredientUnitWeight> duplicates = new ArrayList<>();
+        List<IngredientUnitWeight> renamed = new ArrayList<>();
         for (IngredientUnitWeight weight : weights) {
-            if (Units.normalize(weight.getUnit()).equals(weight.getUnit())) {
-                kept.putIfAbsent(keyOf(weight.getIngredient().getId(), weight.getUnit()), weight);
+            String name = Units.normalize(weight.getUnit());
+            if (taken.add(keyOf(weight.getIngredient().getId(), name))) {
+                if (!name.equals(weight.getUnit())) renamed.add(weight);
             } else {
-                spellings.add(weight);
+                duplicates.add(weight);
             }
         }
-        for (IngredientUnitWeight weight : spellings) {
-            String name = Units.normalize(weight.getUnit());
-            String key = keyOf(weight.getIngredient().getId(), name);
-            if (kept.containsKey(key)) {
-                weightRepository.delete(weight);
-            } else {
-                weight.setUnit(name);
-                kept.put(key, weight);
-            }
+        // The duplicates go first, so their names are free before the renamed rows take them.
+        weightRepository.deleteAll(duplicates);
+        weightRepository.flush();
+        for (IngredientUnitWeight weight : renamed) {
+            weight.setUnit(Units.normalize(weight.getUnit()));
         }
     }
 

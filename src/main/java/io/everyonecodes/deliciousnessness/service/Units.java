@@ -3,6 +3,7 @@ package io.everyonecodes.deliciousnessness.service;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 // Unit names as the ingredient pages, the nutrition calculation and the shopping list read them.
 // Every spelling of one unit (tl, łyżeczka, teaspoon, ...) becomes the same name here.
@@ -57,6 +58,15 @@ final class Units {
                 .replaceAll("\\s+", " ");
         String name = SAME_AS.getOrDefault(clean, clean);
         return name.length() > MAX_LENGTH ? name.substring(0, MAX_LENGTH) : name;
+    }
+
+    // Units that count things (one clove, one piece). The shopping list keeps them as counts; they are never
+    // turned into grams there.
+    private static final Set<String> COUNTED = Set.of("", "clove", "piece", "pinch", "can", "handful", "bunch",
+            "sprig", "stalk", "leaf", "slice", "sachet", "head", "blade", "stick");
+
+    static boolean isCounted(String normalizedUnit) {
+        return COUNTED.contains(normalizedUnit);
     }
 
     // Grams in one unit when it is a weight, otherwise null.
