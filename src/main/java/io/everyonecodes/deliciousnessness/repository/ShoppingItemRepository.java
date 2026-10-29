@@ -18,6 +18,9 @@ public interface ShoppingItemRepository extends JpaRepository<ShoppingItem, Long
     // Removes every line of the week, for the Clear button.
     void deleteByWeekId(Long weekId);
 
+    // Lines saved before the app stored their ingredient. They are linked once, at startup.
+    List<ShoppingItem> findAllByIngredientIdIsNull();
+
     // Makes sure an edit or delete can only touch a line that belongs to the week in the URL.
     Optional<ShoppingItem> findByIdAndWeekId(Long id, Long weekId);
 }

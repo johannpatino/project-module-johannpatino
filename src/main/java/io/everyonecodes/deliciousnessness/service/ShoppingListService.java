@@ -81,6 +81,16 @@ public class ShoppingListService {
         shoppingItemRepository.deleteByWeekId(weekId);
     }
 
+    // Lines saved before the app stored their ingredient and amount as numbers. Each is linked to its ingredient
+    // by its name, in any language, and its amount is read into a number and unit. Then it combines with the
+    // other lines of that ingredient.
+    @Transactional
+    public void linkSavedLines() {
+        for (ShoppingItem item : shoppingItemRepository.findAllByIngredientIdIsNull()) {
+            describe(item, item.getName(), item.getAmount());
+        }
+    }
+
     @Transactional
     public void addItem(Long weekId, String name, String amount) {
         PlannerWeek week = findUpcomingWeek(weekId);
