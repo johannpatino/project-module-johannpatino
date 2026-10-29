@@ -30,6 +30,15 @@ public class ShoppingItem {
     @Column(length = 64)
     private String amount;
 
+    // The ingredient this line is about, when it is known. Lines of one ingredient are one line on the list.
+    private Long ingredientId;
+
+    // The amount as a number and a unit (the spelling the app uses, e.g. "clove"). Null when the amount is text.
+    private Double quantity;
+
+    @Column(length = 32)
+    private String unit;
+
     // true = worked out from the planned recipes; false = added by hand.
     private boolean fromRecipes;
 

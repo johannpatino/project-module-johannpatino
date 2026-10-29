@@ -3,10 +3,16 @@ package io.everyonecodes.deliciousnessness.service;
 import io.everyonecodes.deliciousnessness.dto.ShoppingGroupDto;
 import io.everyonecodes.deliciousnessness.dto.ShoppingItemDto;
 import io.everyonecodes.deliciousnessness.dto.ShoppingListDto;
+import io.everyonecodes.deliciousnessness.model.Ingredient;
+import io.everyonecodes.deliciousnessness.model.IngredientName;
+import io.everyonecodes.deliciousnessness.model.IngredientUnitWeight;
 import io.everyonecodes.deliciousnessness.model.PlannerEntry;
 import io.everyonecodes.deliciousnessness.model.PlannerWeek;
 import io.everyonecodes.deliciousnessness.model.RecipeIngredient;
 import io.everyonecodes.deliciousnessness.model.ShoppingItem;
+import io.everyonecodes.deliciousnessness.repository.IngredientNameRepository;
+import io.everyonecodes.deliciousnessness.repository.IngredientRepository;
+import io.everyonecodes.deliciousnessness.repository.IngredientUnitWeightRepository;
 import io.everyonecodes.deliciousnessness.repository.PlannerEntryRepository;
 import io.everyonecodes.deliciousnessness.repository.PlannerWeekRepository;
 import io.everyonecodes.deliciousnessness.repository.ShoppingItemRepository;
@@ -17,14 +23,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// The shopping list of one week. Lines of the same ingredient are one line, named by its English name,
+// whatever the recipes called it and whatever unit they wrote it in: "2 ząbki", "1 clove" and "2 zehen" of
+// garlic make "4 clove". Amounts are added up when the units match, or in grams when every unit has a
+// gram value (Edit ingredients). Otherwise the units are listed with a "+" between them.
 @Service
 public class ShoppingListService {
 
@@ -37,13 +43,22 @@ public class ShoppingListService {
     private final ShoppingItemRepository shoppingItemRepository;
     private final PlannerWeekRepository plannerWeekRepository;
     private final PlannerEntryRepository plannerEntryRepository;
+    private final IngredientRepository ingredientRepository;
+    private final IngredientNameRepository ingredientNameRepository;
+    private final IngredientUnitWeightRepository weightRepository;
 
     public ShoppingListService(ShoppingItemRepository shoppingItemRepository,
                                PlannerWeekRepository plannerWeekRepository,
-                               PlannerEntryRepository plannerEntryRepository) {
+                               PlannerEntryRepository plannerEntryRepository,
+                               IngredientRepository ingredientRepository,
+                               IngredientNameRepository ingredientNameRepository,
+                               IngredientUnitWeightRepository weightRepository) {
         this.shoppingItemRepository = shoppingItemRepository;
         this.plannerWeekRepository = plannerWeekRepository;
         this.plannerEntryRepository = plannerEntryRepository;
+        this.ingredientRepository = ingredientRepository;
+        this.ingredientNameRepository = ingredientNameRepository;
+        this.weightRepository = weightRepository;
     }
 
     // Nothing is built automatically, so a list you cleared stays cleared.
@@ -71,7 +86,9 @@ public class ShoppingListService {
         PlannerWeek week = findUpcomingWeek(weekId);
         String cleanName = clean(name, NAME_MAX);
         if (cleanName == null) return;
-        shoppingItemRepository.save(new ShoppingItem(week, cleanName, clean(amount, AMOUNT_MAX), false));
+        ShoppingItem item = new ShoppingItem(week, cleanName, clean(amount, AMOUNT_MAX), false);
+        describe(item, cleanName, item.getAmount());
+        shoppingItemRepository.save(item);
     }
 
     @Transactional
@@ -79,8 +96,9 @@ public class ShoppingListService {
         findUpcomingWeek(weekId);
         String cleanName = clean(name, NAME_MAX);
         shoppingItemRepository.findByIdAndWeekId(itemId, weekId).ifPresent(item -> {
-            if (cleanName != null) item.setName(cleanName);
-            item.setAmount(clean(amount, AMOUNT_MAX));
+            String newAmount = clean(amount, AMOUNT_MAX);
+            describe(item, cleanName != null ? cleanName : item.getName(), newAmount);
+            item.setAmount(newAmount);
         });
     }
 
@@ -90,118 +108,172 @@ public class ShoppingListService {
         shoppingItemRepository.findByIdAndWeekId(itemId, weekId).ifPresent(shoppingItemRepository::delete);
     }
 
+    // Works out what a typed line is about: its ingredient when the name is one the app knows (then the line
+    // takes the English name), and its amount as a number and a unit.
+    private void describe(ShoppingItem item, String typedName, String typedAmount) {
+        Ingredient ingredient = ingredientNamed(typedName);
+        item.setName(ingredient != null ? ingredient.getCanonicalName() : typedName);
+        item.setIngredientId(ingredient != null ? ingredient.getId() : null);
+        Amount amount = parse(typedAmount);
+        item.setQuantity(amount == null ? null : amount.quantity());
+        item.setUnit(amount == null ? null : amount.unit());
+    }
+
+    // The ingredient a name means: by one of its names in any language, else by its English name.
+    private Ingredient ingredientNamed(String name) {
+        List<IngredientName> names = ingredientNameRepository.findByNameIgnoreCase(name);
+        if (!names.isEmpty()) return names.get(0).getIngredient();
+        return ingredientRepository.findByCanonicalNameIgnoreCase(name).orElse(null);
+    }
+
     private void rebuildFromRecipes(PlannerWeek week) {
         shoppingItemRepository.deleteByWeekIdAndFromRecipesTrue(week.getId());
 
-        // Key = ingredient + unit. Every planned entry counts once, so the same recipe on
-        // two days is counted twice.
+        // One total per ingredient and unit. Each card is one serving, so it adds 1/servings of its recipe.
         Map<String, Total> totals = new LinkedHashMap<>();
         for (PlannerEntry card : plannerEntryRepository.findAllByWeekIdOrderByIdAsc(week.getId())) {
-            // A card is one serving, so it adds 1/servings of the recipe's ingredients.
             double share = 1.0 / PlannerService.servingsOf(card.getRecipe());
             for (RecipeIngredient line : card.getRecipe().getRecipeIngredients()) {
-                String unit = line.getUnit() == null ? "" : line.getUnit().trim();
-                String key = line.getIngredient().getId() + "|" + unit.toLowerCase();
+                Ingredient ingredient = line.getIngredient();
+                String unit = Units.normalize(line.getUnit());
                 Double quantity = line.getQuantity() == null ? null : line.getQuantity() * share;
-                totals.computeIfAbsent(key, k -> new Total(nameOf(line), unit)).add(quantity);
+                totals.computeIfAbsent(ingredient.getId() + "|" + unit, key -> new Total(ingredient, unit)).add(quantity);
             }
         }
         for (Total total : totals.values()) {
-            shoppingItemRepository.save(new ShoppingItem(week, total.name, total.amount(), true));
+            ShoppingItem item = new ShoppingItem(week, total.ingredient.getCanonicalName(),
+                    total.quantity == null ? null : numberWithUnit(total.quantity, total.unit), true);
+            item.setIngredientId(total.ingredient.getId());
+            item.setQuantity(total.quantity);
+            item.setUnit(total.unit);
+            shoppingItemRepository.save(item);
         }
     }
 
-    private static String nameOf(RecipeIngredient line) {
-        return line.getDisplayName() != null && !line.getDisplayName().isBlank()
-                ? line.getDisplayName()
-                : line.getIngredient().getCanonicalName();
-    }
-
-    // Running total for one line made from recipes.
+    // The running total of one ingredient in one unit, from the recipes. Null until a line has an amount.
     private static class Total {
-        private final String name;
+        private final Ingredient ingredient;
         private final String unit;
-        private double quantity;
-        private boolean hasQuantity;
+        private Double quantity;
 
-        Total(String name, String unit) {
-            this.name = name;
+        Total(Ingredient ingredient, String unit) {
+            this.ingredient = ingredient;
             this.unit = unit;
         }
 
         void add(Double value) {
             if (value == null) return;
-            quantity += value;
-            hasQuantity = true;
-        }
-
-        // "600 g", "1.5 tbsp", or just "3" with no unit. Null when no amount was ever given ("salt").
-        String amount() {
-            if (!hasQuantity) return null;
-            String number = BigDecimal.valueOf(quantity)
-                    .setScale(2, RoundingMode.HALF_UP)
-                    .stripTrailingZeros()
-                    .toPlainString();
-            return unit.isEmpty() ? number : number + " " + unit;
+            quantity = (quantity == null ? 0.0 : quantity) + value;
         }
     }
 
     // Turns the stored lines into the combined list, sorted by name.
     private ShoppingListDto toDto(PlannerWeek week) {
-        Map<String, List<ShoppingItem>> sameLine = new LinkedHashMap<>();
-        for (ShoppingItem item : shoppingItemRepository.findAllByWeekIdOrderByIdAsc(week.getId())) {
-            sameLine.computeIfAbsent(sameLineKey(item), key -> new ArrayList<>()).add(item);
+        List<ShoppingItem> items = shoppingItemRepository.findAllByWeekIdOrderByIdAsc(week.getId());
+
+        Map<String, List<ShoppingItem>> lines = new LinkedHashMap<>();
+        for (ShoppingItem item : items) {
+            lines.computeIfAbsent(groupKey(item), key -> new ArrayList<>()).add(item);
         }
-        List<ShoppingGroupDto> groups = sameLine.values().stream()
-                .map(this::groupOf)
+        Map<Long, Map<String, Double>> gramsByIngredient = gramsFor(items);
+        List<ShoppingGroupDto> groups = lines.values().stream()
+                .map(sources -> groupOf(sources, gramsByIngredient))
                 .sorted(Comparator.comparing(ShoppingGroupDto::name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
         return new ShoppingListDto(week.getId(), week.getStartDate(), groups);
     }
 
-    // Same name and same unit means the same line: "Spaghetti 200 g" and "spaghetti 600 g" combine.
-    private static String sameLineKey(ShoppingItem item) {
-        return item.getName().trim().toLowerCase() + "|" + parse(item.getAmount()).unitKey();
+    // Lines of one ingredient are one line. A line with no ingredient is grouped by its name.
+    private static String groupKey(ShoppingItem item) {
+        return item.getIngredientId() != null
+                ? "ingredient " + item.getIngredientId()
+                : "name " + item.getName().trim().toLowerCase(Locale.ROOT);
     }
 
-    // Adds up the numbers of one combined line. Amounts without a number are shown as typed.
-    private ShoppingGroupDto groupOf(List<ShoppingItem> sources) {
-        BigDecimal total = null;
-        String unitText = "";
+    // Grams for one unit of each ingredient on the list, from the Edit ingredients page.
+    private Map<Long, Map<String, Double>> gramsFor(List<ShoppingItem> items) {
+        Set<Long> ids = new HashSet<>();
+        for (ShoppingItem item : items) {
+            if (item.getIngredientId() != null) ids.add(item.getIngredientId());
+        }
+        Map<Long, Map<String, Double>> grams = new HashMap<>();
+        if (ids.isEmpty()) return grams;
+        for (IngredientUnitWeight weight : weightRepository.findAllByIngredientIdIn(ids)) {
+            grams.computeIfAbsent(weight.getIngredient().getId(), key -> new HashMap<>())
+                    .put(Units.normalize(weight.getUnit()), weight.getGrams());
+        }
+        return grams;
+    }
+
+    // One line: the parts added up, then any text amounts with a "+", and the stored lines it was made from.
+    private ShoppingGroupDto groupOf(List<ShoppingItem> sources, Map<Long, Map<String, Double>> gramsByIngredient) {
+        Map<String, Double> perUnit = new LinkedHashMap<>();
+        List<String> texts = new ArrayList<>();
         for (ShoppingItem item : sources) {
-            Parsed parsed = parse(item.getAmount());
-            if (parsed.number() == null) continue;
-            total = total == null ? parsed.number() : total.add(parsed.number());
-            if (unitText.isEmpty()) unitText = parsed.unitText();
+            Amount amount = amountOf(item);
+            if (amount != null) {
+                perUnit.merge(amount.unit(), amount.quantity(), Double::sum);
+            } else if (item.getAmount() != null && !item.getAmount().isBlank()) {
+                texts.add(item.getAmount().trim());
+            }
         }
 
-        String amount;
-        if (total == null) {
-            amount = sources.get(0).getAmount();
+        Long ingredientId = sources.get(0).getIngredientId();
+        Map<String, Double> grams = ingredientId == null
+                ? Map.of()
+                : gramsByIngredient.getOrDefault(ingredientId, Map.of());
+
+        List<String> pieces = new ArrayList<>();
+        if (perUnit.size() == 1) {
+            Map.Entry<String, Double> only = perUnit.entrySet().iterator().next();
+            pieces.add(numberWithUnit(only.getValue(), only.getKey()));
+        } else if (perUnit.size() > 1 && perUnit.keySet().stream().allMatch(unit -> gramsOf(unit, grams) != null)) {
+            double total = perUnit.entrySet().stream()
+                    .mapToDouble(part -> part.getValue() * gramsOf(part.getKey(), grams))
+                    .sum();
+            pieces.add(numberWithUnit(total, "g"));
         } else {
-            String number = total.setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
-            amount = unitText.isEmpty() ? number : number + " " + unitText;
+            perUnit.forEach((unit, quantity) -> pieces.add(numberWithUnit(quantity, unit)));
         }
+        pieces.addAll(texts);
 
         List<ShoppingItemDto> parts = sources.stream()
                 .map(item -> new ShoppingItemDto(item.getId(), item.getName(), item.getAmount(), item.isFromRecipes()))
                 .toList();
-        return new ShoppingGroupDto(sources.get(0).getName(), amount, parts);
+        return new ShoppingGroupDto(sources.get(0).getName(),
+                pieces.isEmpty() ? null : String.join(" + ", pieces), parts);
     }
 
-    private static Parsed parse(String amount) {
-        if (amount == null || amount.isBlank()) return new Parsed(null, "", "");
-        String text = amount.trim();
-        Matcher matcher = AMOUNT.matcher(text);
-        if (matcher.matches()) {
-            BigDecimal number = new BigDecimal(matcher.group(1).replace(',', '.'));
-            String unit = matcher.group(2).trim();
-            return new Parsed(number, unit.toLowerCase(), unit);
+    // Grams in one unit: the built-in weights (g, kg), or the ingredient's own. Null when there is no value.
+    private static Double gramsOf(String unit, Map<String, Double> ingredientGrams) {
+        Double builtIn = Units.weightInGrams(unit);
+        return builtIn != null ? builtIn : ingredientGrams.get(unit);
+    }
+
+    // The number and unit of a line. A line without a stored number (made before they were stored) is read
+    // from its text.
+    private static Amount amountOf(ShoppingItem item) {
+        if (item.getQuantity() != null) {
+            return new Amount(item.getQuantity(), item.getUnit() == null ? "" : item.getUnit());
         }
-        return new Parsed(null, text.toLowerCase(), text);
+        return parse(item.getAmount());
     }
 
-    private record Parsed(BigDecimal number, String unitKey, String unitText) {
+    // "400 g" -> 400 g. "1,5 tbsp" -> 1.5 tbsp. Null for text such as "a pinch".
+    private static Amount parse(String amount) {
+        if (amount == null || amount.isBlank()) return null;
+        Matcher matcher = AMOUNT.matcher(amount.trim());
+        if (!matcher.matches()) return null;
+        double quantity = new BigDecimal(matcher.group(1).replace(',', '.')).doubleValue();
+        return new Amount(quantity, Units.normalize(matcher.group(2)));
+    }
+
+    private record Amount(double quantity, String unit) {
+    }
+
+    private static String numberWithUnit(double quantity, String unit) {
+        String number = BigDecimal.valueOf(quantity).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+        return unit.isEmpty() ? number : number + " " + unit;
     }
 
     // Shopping lists are only for upcoming weeks. Past weeks are read-only.
