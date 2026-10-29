@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- One stored line of the shopping list: its amount and name, with its own edit and remove. -->
+<li th:fragment="line(weekId, item, classes)" th:class="${classes}">
+    <span class="shop-text">
+        <span class="shop-amount" th:text="${item.amount()}">400 g</span>
+        <span class="shop-name" th:text="${item.name()}">spaghetti</span>
+    </span>
+
+    <details class="shop-edit no-print">
+        <summary>Edit</summary>
+        <form th:action="@{/planner/weeks/{w}/shopping/items/{i}(w=${weekId},i=${item.id()})}"
+              method="post" class="shop-form">
+            <input type="text" name="name" th:value="${item.name()}" maxlength="128" required
+                   aria-label="Item name">
+            <input type="text" name="amount" th:value="${item.amount()}" maxlength="64"
+                   placeholder="Amount, e.g. 400 g" aria-label="Amount">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+        <form th:action="@{/planner/weeks/{w}/shopping/items/{i}/delete(w=${weekId},i=${item.id()})}"
+              method="post" style="margin:0">
+            <button type="submit" class="btn btn-danger">Remove</button>
+        </form>
+    </details>
+</li>
+
+</body>
+</html>

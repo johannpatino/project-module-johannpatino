@@ -1096,6 +1096,15 @@ dialog.planner-dialog {
 }
 .card-remove:hover { color: var(--danger); }
 
+/* The empty place a held card leaves in its column. The other cards slide around it. */
+.card-slot {
+    flex: none;
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+}
+.lane-cards .card-slot { width: 9.5rem; }
+
 /* The copy that follows the pointer while a card is dragged. */
 .card-ghost {
     position: fixed;
@@ -1189,6 +1198,21 @@ dialog.planner-dialog {
 .past-days li { font-size: 0.92rem; }
 .past-day-name { display: inline-block; min-width: 6.5rem; font-weight: 600; color: var(--ink-soft); }
 
+/* A combined line: closed, showing its total. A click opens the lines it came from (screen only). */
+.shop-group { border-bottom: 1px solid var(--line); }
+.shop-group:last-child { border-bottom: 0; }
+.shop-group-details > summary { cursor: pointer; list-style: none; border-bottom: 0; }
+.shop-group-details > summary::-webkit-details-marker { display: none; }
+.shop-group-details > summary::after {
+    content: "\25B8";
+    margin-left: 0.5rem;
+    color: var(--ink-faint);
+    font-size: 0.8rem;
+    transition: transform 0.15s;
+}
+.shop-group-details[open] > summary::after { transform: rotate(90deg); }
+.shop-parts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+
 /* A combined line: its total on top, and the lines it came from underneath (screen only). */
 .shop-total { background: var(--accent-soft); }
 .shop-total .shop-amount { color: var(--accent-dark); }
@@ -1225,6 +1249,7 @@ body.printing .shop-item {
 body.printing .shop-text { flex-wrap: nowrap; gap: 0.6rem; }
 body.printing .shop-amount { min-width: 6.5rem; }
 body.printing .shop-total { background: none; }
+body.printing .shop-group-details > summary::after { display: none; }
 
 /* ---------------------------------------------------------------
    Responsive

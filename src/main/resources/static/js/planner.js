@@ -23,50 +23,73 @@
     });
 
     // Dragging planner cards. Grab a card by its grab bar. Works with mouse and touch.
-    const SCROLL_KEY = 'plannerScroll';
+    // While a card is held, the other cards step aside to show where it would land, and the move is saved
+    // in the background, so the page does not reload.
     const EDGE_PX = 90;         // within this distance of the top or bottom of the window, the page scrolls
     const SCROLL_STEP_PX = 14;  // how far each step scrolls while a card is held there
-    const moveForm = document.getElementById('move-form');
+    const SHIFT_MS = 180;       // how long the other cards take to step aside
+    const moveForm = document.getElementById('move-form'); // only its security token is used
     let drag = null;
     let lastPointer = null;
     let scrollTimer = null;
+    let saving = Promise.resolve(); // moves are sent one after another, in the order they were made
 
-    if (moveForm) {
-        document.addEventListener('pointerdown', event => {
-            const grip = event.target.closest('[data-grip]');
-            if (!grip || event.button !== 0) return;
-
-            const card = grip.closest('[data-card]');
-            const rect = card.getBoundingClientRect();
-            const ghost = card.cloneNode(true);
-            ghost.classList.add('card-ghost');
-            ghost.style.width = rect.width + 'px';
-            document.body.appendChild(ghost);
-            card.classList.add('is-dragging');
-
-            drag = {
-                card,
-                ghost,
-                pointerId: event.pointerId,
-                offsetX: event.clientX - rect.left,
-                offsetY: event.clientY - rect.top,
-            };
-            lastPointer = event;
-            grip.setPointerCapture(event.pointerId);
-            placeGhost(event);
-            startAutoScroll();
-            event.preventDefault();
-        });
+    if (document.querySelector('.plan-week')) {
+        document.addEventListener('pointerdown', startDrag);
 
         document.addEventListener('pointermove', event => {
             if (!drag || event.pointerId !== drag.pointerId) return;
             lastPointer = event;
             placeGhost(event);
-            highlight(dropZoneAt(event));
+            updateTarget(event);
         });
 
-        document.addEventListener('pointerup', event => finishDrag(event, true));
-        document.addEventListener('pointercancel', event => finishDrag(event, false));
+        document.addEventListener('pointerup', event => endDrag(event, true));
+        document.addEventListener('pointercancel', event => endDrag(event, false));
+    }
+
+    function startDrag(event) {
+        const grip = event.target.closest('[data-grip]');
+        if (!grip || event.button !== 0) return;
+
+        const card = grip.closest('[data-card]');
+        const rect = card.getBoundingClientRect();
+        const container = containerOf(card.closest('[data-drop]'));
+
+        const ghost = card.cloneNode(true);
+        ghost.classList.add('card-ghost');
+        ghost.style.width = rect.width + 'px';
+        document.body.appendChild(ghost);
+
+        // The card leaves the layout. An empty slot of the same size takes its place until it is dropped.
+        const slot = document.createElement('div');
+        slot.className = 'card-slot';
+        slot.style.height = rect.height + 'px';
+        card.before(slot);
+        card.style.display = 'none';
+
+        const index = cardsIn(container).indexOf(card);
+        drag = {
+            card,
+            ghost,
+            slot,
+            pointerId: event.pointerId,
+            offsetX: event.clientX - rect.left,
+            offsetY: event.clientY - rect.top,
+            origin: {
+                container,
+                index,
+                week: card.closest('[data-week-id]').dataset.weekId,
+                day: card.dataset.day || '',
+                person: card.dataset.person || '',
+            },
+            target: { container, index },
+        };
+        lastPointer = event;
+        grip.setPointerCapture(event.pointerId);
+        placeGhost(event);
+        startAutoScroll();
+        event.preventDefault();
     }
 
     // While a card is held near the top or bottom of the window, the page scrolls, so cards in other
@@ -79,7 +102,7 @@
             if (lastPointer.clientY > window.innerHeight - EDGE_PX) step = SCROLL_STEP_PX;
             if (step === 0) return;
             window.scrollBy(0, step);
-            highlight(dropZoneAt(lastPointer));
+            updateTarget(lastPointer);
         }, 16);
     }
 
@@ -99,76 +122,128 @@
         if (zone) zone.classList.add('is-over');
     }
 
-    function finishDrag(event, dropped) {
+    // The element that holds a zone's cards: the lane's card row, or the day cell itself.
+    function containerOf(zone) {
+        return zone.querySelector(':scope > .lane-cards') || zone;
+    }
+
+    // The cards directly in a container, top to bottom (the empty slot is not a card).
+    function cardsIn(container) {
+        return [...container.children].filter(child => child.matches('[data-card]'));
+    }
+
+    // A card's middle, without the offset of an animation it may be playing.
+    function middleOf(card) {
+        const box = card.getBoundingClientRect();
+        const shift = new DOMMatrix(getComputedStyle(card).transform).m42;
+        return box.top - shift + box.height / 2;
+    }
+
+    // Follows the pointer: the slot goes to the place under it, if that is a different place.
+    function updateTarget(event) {
+        const zone = dropZoneAt(event);
+        highlight(zone);
+        if (!zone) return;
+
+        const container = containerOf(zone);
+        const others = cardsIn(container).filter(card => card !== drag.card);
+        let index = others.findIndex(card => event.clientY < middleOf(card));
+        if (index === -1) index = others.length;
+        if (container === drag.target.container && index === drag.target.index) return;
+
+        drag.target = { container, index };
+        moveSlotTo(container, index);
+    }
+
+    // Moves the empty slot into a place in a container. The cards that have to move slide to make room.
+    function moveSlotTo(container, index) {
+        const moved = new Set([...cardsIn(container), ...cardsIn(drag.slot.parentElement)]);
+        moved.delete(drag.card);
+        const topBefore = new Map([...moved].map(card => [card, card.getBoundingClientRect().top]));
+
+        const others = cardsIn(container).filter(card => card !== drag.card);
+        container.insertBefore(drag.slot, others[index] || null);
+
+        for (const [card, top] of topBefore) {
+            const shift = new DOMMatrix(getComputedStyle(card).transform).m42;
+            const offset = top - (card.getBoundingClientRect().top - shift);
+            if (Math.abs(offset) > 0.5) {
+                card.animate([{ transform: `translateY(${offset}px)` }, { transform: 'none' }],
+                    { duration: SHIFT_MS, easing: 'ease-out' });
+            }
+        }
+    }
+
+    // A lane shows its hint only while it has no cards in it.
+    function updateHint(container) {
+        const hint = container.querySelector(':scope > .hint');
+        if (hint) hint.hidden = cardsIn(container).length > 0;
+    }
+
+    function endDrag(event, dropped) {
         if (!drag || event.pointerId !== drag.pointerId) return;
+
+        // Dropped on a column or lane: the slot goes where the pointer is. Anywhere else: back where it came from.
+        if (dropped && dropZoneAt(event)) {
+            updateTarget(event);
+        } else {
+            moveSlotTo(drag.origin.container, drag.origin.index);
+        }
+
         const current = drag;
-        const zone = dropped ? dropZoneAt(event) : null;
         drag = null;
         lastPointer = null;
         clearInterval(scrollTimer);
-
         current.ghost.remove();
-        current.card.classList.remove('is-dragging');
         highlight(null);
 
-        if (!zone) return;
-        const fromZone = current.card.closest('[data-drop]');
-        const from = {
-            week: current.card.closest('[data-week-id]').dataset.weekId,
-            day: current.card.dataset.day || '',
-            person: current.card.dataset.person || '',
-            position: current.card.dataset.day ? cardsIn(fromZone, null).indexOf(current.card) : null,
-        };
+        // The card takes the slot's place, and the place it ends up in is read from the page.
+        const container = current.slot.parentElement;
+        const children = [...container.children];
+        const position = children.slice(0, children.indexOf(current.slot))
+            .filter(child => child.matches('[data-card]') && child !== current.card).length;
+        current.slot.replaceWith(current.card);
+        current.card.style.display = '';
+
+        const zone = container.closest('[data-drop]');
         const to = {
             week: zone.closest('[data-week-id]').dataset.weekId,
             day: zone.dataset.day || '',
             person: zone.dataset.person || '',
-            position: zone.dataset.day ? positionIn(zone, current.card, event) : null,
+            position: zone.dataset.day ? position : null,
         };
-        // Dropped where it already was: nothing to do.
-        if (from.week === to.week && from.day === to.day && from.person === to.person
-            && from.position === to.position) return;
-        sendMove(current.card.dataset.entryId, to);
+        current.card.dataset.day = to.day;
+        current.card.dataset.person = to.person;
+        updateHint(container);
+        updateHint(current.origin.container);
+
+        const { origin } = current;
+        const sameSpot = to.week === origin.week && to.day === origin.day && to.person === origin.person
+            && position === origin.index;
+        if (!sameSpot) saveMove(current.card.dataset.entryId, to);
     }
 
-    // The cards in one column, top to bottom, not counting the card being moved.
-    function cardsIn(zone, card) {
-        return [...zone.querySelectorAll('[data-card]')].filter(other => other !== card);
-    }
-
-    // Where the card lands in its column: above the first card whose middle is below the pointer.
-    function positionIn(zone, card, event) {
-        const cards = cardsIn(zone, card);
-        const index = cards.findIndex(other => {
-            const box = other.getBoundingClientRect();
-            return event.clientY < box.top + box.height / 2;
+    // Sends one move to the server. Moves wait for the one before them, so the server gets them in order.
+    // The page already shows the new place, so nothing reloads on success.
+    function saveMove(entryId, to) {
+        const body = new URLSearchParams({
+            _csrf: moveForm.querySelector('input[name="_csrf"]').value,
+            weekId: to.week,
+            day: to.day,
+            person: to.person,
+            position: to.position === null ? '' : String(to.position),
         });
-        return index === -1 ? cards.length : index;
-    }
-
-    // Puts the card in its new place on the server, then the page reloads at the same scroll position.
-    function sendMove(entryId, to) {
-        moveForm.action = '/planner/entries/' + encodeURIComponent(entryId) + '/move';
-        moveForm.elements.weekId.value = to.week;
-        moveForm.elements.day.value = to.day;
-        moveForm.elements.person.value = to.person;
-        moveForm.elements.position.value = to.position === null ? '' : String(to.position);
-        try {
-            sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
-        } catch (e) {
-            // Storage can be blocked. The page then just starts at the top.
-        }
-        moveForm.submit();
-    }
-
-    try {
-        const saved = sessionStorage.getItem(SCROLL_KEY);
-        if (saved !== null) {
-            sessionStorage.removeItem(SCROLL_KEY);
-            window.scrollTo(0, Number(saved));
-        }
-    } catch (e) {
-        // Storage can be blocked. Nothing to restore.
+        saving = saving
+            .then(() => fetch('/planner/entries/' + encodeURIComponent(entryId) + '/move', {
+                method: 'POST',
+                body,
+                credentials: 'same-origin',
+                redirect: 'manual', // the server answers with a redirect back to the planner, which isn't needed here
+            }))
+            .then(response => {
+                if (response.type !== 'opaqueredirect' && !response.ok) throw new Error('HTTP ' + response.status);
+            })
+            .catch(() => location.reload()); // the server didn't keep the move: show what it actually has
     }
 
     // Any button with data-open-dialog opens the <dialog> with that id.

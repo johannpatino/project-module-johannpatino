@@ -55,36 +55,26 @@
     <ul class="shop-list" th:unless="${#lists.isEmpty(list.groups())}">
         <th:block th:each="group : ${list.groups()}">
 
-            <!-- A combined line: the total. Its parts are listed underneath (screen only). -->
-            <li class="shop-item shop-total" th:if="${#lists.size(group.sources()) > 1}">
-                <span class="shop-text">
-                    <span class="shop-amount" th:text="${group.amount()}">800 g</span>
-                    <span class="shop-name" th:text="${group.name()}">spaghetti</span>
-                </span>
-                <span class="shop-count no-print" th:text="|${#lists.size(group.sources())} lines|">2 lines</span>
-            </li>
+            <!-- A line on its own: its amount, and its edit and remove. -->
+            <th:block th:if="${#lists.size(group.sources()) == 1}" th:each="item : ${group.sources()}">
+                <li th:replace="~{fragments/shopping-line :: line(${list.weekId()}, ${item}, 'shop-item')}"></li>
+            </th:block>
 
-            <li class="shop-item" th:each="item : ${group.sources()}"
-                th:classappend="${#lists.size(group.sources()) > 1} ? 'is-part' : ''">
-                <span class="shop-text">
-                    <span class="shop-amount" th:text="${item.amount()}">400 g</span>
-                    <span class="shop-name" th:text="${item.name()}">spaghetti</span>
-                </span>
-
-                <details class="shop-edit no-print">
-                    <summary>Edit</summary>
-                    <form th:action="@{/planner/weeks/{w}/shopping/items/{i}(w=${list.weekId()},i=${item.id()})}"
-                          method="post" class="shop-form">
-                        <input type="text" name="name" th:value="${item.name()}" maxlength="128" required
-                               aria-label="Item name">
-                        <input type="text" name="amount" th:value="${item.amount()}" maxlength="64"
-                               placeholder="Amount, e.g. 400 g" aria-label="Amount">
-                        <button type="submit" class="btn btn-primary">Save</button>
-                    </form>
-                    <form th:action="@{/planner/weeks/{w}/shopping/items/{i}/delete(w=${list.weekId()},i=${item.id()})}"
-                          method="post" style="margin:0">
-                        <button type="submit" class="btn btn-danger">Remove</button>
-                    </form>
+            <!-- Lines of one ingredient: closed, showing the total. A click shows the lines they came from. -->
+            <li class="shop-group" th:if="${#lists.size(group.sources()) > 1}">
+                <details class="shop-group-details">
+                    <summary class="shop-item shop-total">
+                        <span class="shop-text">
+                            <span class="shop-amount" th:text="${group.amount()}">800 g</span>
+                            <span class="shop-name" th:text="${group.name()}">spaghetti</span>
+                        </span>
+                        <span class="shop-count no-print" th:text="|${#lists.size(group.sources())} lines|">2 lines</span>
+                    </summary>
+                    <ul class="shop-parts">
+                        <th:block th:each="item : ${group.sources()}">
+                            <li th:replace="~{fragments/shopping-line :: line(${list.weekId()}, ${item}, 'shop-item is-part')}"></li>
+                        </th:block>
+                    </ul>
                 </details>
             </li>
         </th:block>
