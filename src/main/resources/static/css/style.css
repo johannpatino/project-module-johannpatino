@@ -560,7 +560,7 @@ img { max-width: 100%; display: block; }
 .field > span { font-size: 0.88rem; font-weight: 600; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
 
-input[type="text"], input[type="url"], input[type="number"], select, textarea {
+input[type="text"], input[type="email"], input[type="password"], input[type="url"], input[type="number"], select, textarea {
     width: 100%;
     padding: 0.6rem 0.8rem;
     font: inherit;
@@ -1221,8 +1221,9 @@ dialog.planner-dialog {
 .is-part .shop-amount { font-weight: 400; color: var(--ink-soft); }
 
 /* Printing. planner.js adds the "printing" class just before the print dialog opens, so these
-   rules are the ones that get printed: one line per item, no buttons, no sub-lines. Every row
-   has a fixed height, so the page length is predictable and planner.js can shrink it to fit. */
+   rules are the ones that get printed: one line per item, in two columns, no buttons, no sub-lines.
+   Every row has a fixed height, so the page length is predictable and planner.js can shrink it to
+   fit when a list is too long for two columns. */
 @page { size: A4; margin: 12mm; }
 
 body.printing { background: #fff; }
@@ -1236,7 +1237,8 @@ body.printing .is-part { display: none !important; }
 body.printing .page { padding: 0; max-width: none; }
 body.printing .results-head { margin-bottom: 0.75rem; }
 body.printing .results-head h1 { font-size: 1.5rem; }
-body.printing .shop-list { margin: 0; border: 0; box-shadow: none; }
+body.printing .shop-list { margin: 0; border: 0; box-shadow: none; columns: 2; column-gap: 2rem; }
+body.printing .shop-group { break-inside: avoid; }
 body.printing .shop-item {
     height: 1.9rem;
     padding: 0;
@@ -1509,3 +1511,53 @@ body.printing .shop-group-details > summary::after { display: none; }
 
 .form-problems { margin: 0 0 1rem; padding: 0.75rem 1rem; border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); }
 .form-problems p { margin: 0.2rem 0; }
+
+/* Comments on a recipe */
+.comments { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.comment { padding: 0.9rem 0; border-bottom: 1px solid var(--line); }
+.comment-head { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; color: var(--ink-soft); }
+.comment-head strong { color: var(--ink); }
+.comment-head form { margin: 0 0 0 auto; }
+.comment-body { margin: 0.35rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-form { display: grid; gap: 0.6rem; margin-top: 1.25rem; }
+.comment-form textarea { width: 100%; min-height: 6rem; padding: 0.7rem 0.85rem; font: inherit; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); resize: vertical; }
+.comment-form .btn { justify-self: start; }
+.profile-message { margin: 0 0 1rem; padding: 0.75rem 1rem; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-dark); }
+.check-row { display: flex; align-items: center; gap: 0.6rem; margin: 0.5rem 0; }
+
+/* Profile page */
+.profile-page .recipe-title { margin-bottom: 0.4rem; }
+.profile-who { margin: 0 0 1.5rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+.profile-stack { display: grid; gap: 1.25rem; }
+.profile-stack .form-card h2 { margin: 0; font-size: 1.25rem; }
+.profile-stack .hint { margin: 0; }
+.profile-stack input[type="text"], .profile-stack input[type="email"], .profile-stack input[type="password"] { width: 100%; min-width: 0; }
+.invite-new { display: grid; gap: 0.75rem; padding: 1rem; border-radius: var(--radius-sm); background: var(--accent-soft); }
+.invite-new input { font-size: 0.85rem; }
+.invite-list { display: grid; }
+.invite-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.7rem 0; border-top: 1px solid var(--line); }
+.invite-row form { margin: 0; }
+.invite-info { display: grid; gap: 0.1rem; min-width: 0; }
+.invite-info .hint { margin: 0; }
+
+@media (max-width: 44rem) {
+    .profile-stack { gap: 1rem; }
+    .profile-stack .form-actions { flex-direction: column; align-items: stretch; }
+    .profile-stack .form-actions .btn { width: 100%; padding: 0.8rem 1rem; }
+    .profile-stack .check-row { padding: 0.35rem 0; }
+    .profile-stack .check-row input { width: 1.25rem; height: 1.25rem; flex: none; }
+    .invite-row { flex-direction: column; align-items: stretch; }
+    .invite-row .btn { width: 100%; }
+}
+
+/* Replies under a comment */
+.replies { margin: 0.6rem 0 0 0.5rem; padding-left: 0.9rem; border-left: 2px solid var(--line); }
+.comment.reply { padding: 0.6rem 0 0.2rem; border-bottom: 0; }
+.reply-box { margin-top: 0.5rem; }
+.reply-box summary { cursor: pointer; width: fit-content; font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+.reply-box summary:hover { color: var(--accent-dark); }
+.reply-box .comment-form { margin-top: 0.6rem; }
+@media (max-width: 44rem) {
+    .replies { margin-left: 0.2rem; padding-left: 0.7rem; }
+    .reply-box .comment-form .btn { width: 100%; justify-self: stretch; }
+}

@@ -2,6 +2,7 @@ package io.everyonecodes.deliciousnessness.dto;
 
 import io.everyonecodes.deliciousnessness.model.Language;
 import io.everyonecodes.deliciousnessness.model.Season;
+import io.everyonecodes.deliciousnessness.security.WebLinks;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -84,6 +85,8 @@ public class RecipeForm {
         tooLong(problems, "The recipe name", recipeName, RECIPE_NAME_MAX);
         tooLong(problems, "The image link", imageUrl, URL_MAX);
         tooLong(problems, "The source link", sourceUrl, URL_MAX);
+        notWebLink(problems, "The image link", imageUrl);
+        notWebLink(problems, "The source link", sourceUrl);
         if (newCategories != null) {
             for (String category : newCategories.split(",")) {
                 tooLong(problems, "A category name", category.trim(), CATEGORY_MAX);
@@ -101,6 +104,12 @@ public class RecipeForm {
     private static void tooLong(List<String> problems, String label, String value, int max) {
         if (value != null && value.length() > max) {
             problems.add(label + " is longer than " + max + " characters. Shorten it and save again.");
+        }
+    }
+
+    private static void notWebLink(List<String> problems, String label, String value) {
+        if (!WebLinks.isSafe(value)) {
+            problems.add(label + " must start with http:// or https://.");
         }
     }
 

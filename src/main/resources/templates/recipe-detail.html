@@ -15,8 +15,9 @@
 <header class="site-header">
     <a class="brand" href="/recipes">Deliciousnessness</a>
     <span style="flex:1"></span>
-    <a class="btn" href="/planner">Planner</a>
-    <a class="btn btn-primary" href="/recipes/new">+ Add a recipe</a>
+    <a class="btn" href="/planner" th:if="${canEdit}">Planner</a>
+    <a class="btn btn-primary" href="/recipes/new" th:if="${canEdit}">+ Add a recipe</a>
+    <a class="btn" href="/profile">Profile</a>
 </header>
 
 <main class="page">
@@ -99,7 +100,7 @@
                     <li th:each="gap : ${nutrition.gaps()}">
                         <strong th:text="${gap.ingredientName()}">tomato paste</strong>
                         <span th:text="${gap.reason()}">no grams for tbsp</span>
-                        <a th:if="${gap.fixable()}"
+                        <a th:if="${gap.fixable() and canEdit}"
                            th:href="@{/planner/ingredients} + '#ingredient-' + ${gap.ingredientId()}">Fill in &rarr;</a>
                     </li>
                 </ul>
@@ -107,6 +108,59 @@
 
             <h2>Instructions</h2>
             <div class="instructions" th:text="${recipe.instructions()}">Steps go here.</div>
+
+            <section class="comments" id="comments">
+                <h2 th:text="${commentCount == 0} ? 'Comments' : |Comments (${commentCount})|">Comments</h2>
+
+                <p class="hint" th:if="${#lists.isEmpty(comments)}">No comments yet.</p>
+
+                <div class="comment" th:each="comment : ${comments}">
+                    <div class="comment-head">
+                        <strong th:text="${comment.authorName()}">name</strong>
+                        <span th:text="${#temporals.format(comment.createdAt(), 'd MMM yyyy HH:mm')}">1 Jan 2026 12:00</span>
+                        <form th:if="${comment.canDelete()}" th:action="@{/comments/{id}/delete(id=${comment.id()})}"
+                              method="post"
+                              th:data-confirm="${#lists.isEmpty(comment.replies())} ? 'Delete this comment?' : 'Delete this comment and its replies?'">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </div>
+                    <p class="comment-body" th:text="${comment.body()}">text</p>
+
+                    <div class="replies" th:unless="${#lists.isEmpty(comment.replies())}">
+                        <div class="comment reply" th:each="reply : ${comment.replies()}">
+                            <div class="comment-head">
+                                <strong th:text="${reply.authorName()}">name</strong>
+                                <span th:text="${#temporals.format(reply.createdAt(), 'd MMM yyyy HH:mm')}">1 Jan 2026 12:00</span>
+                                <form th:if="${reply.canDelete()}" th:action="@{/comments/{id}/delete(id=${reply.id()})}"
+                                      method="post" data-confirm="Delete this reply?">
+                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                </form>
+                            </div>
+                            <p class="comment-body" th:text="${reply.body()}">text</p>
+                        </div>
+                    </div>
+
+                    <details class="reply-box" th:open="${replyToId != null and replyToId == comment.id()}">
+                        <summary>Reply</summary>
+                        <form class="comment-form" th:action="@{/recipes/{id}/comments(id=${recipe.id()})}" method="post">
+                            <p class="form-problems" th:if="${commentProblem != null and replyToId != null and replyToId == comment.id()}"
+                               th:text="${commentProblem}">Problem.</p>
+                            <input type="hidden" name="parent" th:value="${comment.id()}">
+                            <textarea name="body" required th:attr="maxlength=${maxComment}"
+                                      th:text="${replyToId != null and replyToId == comment.id()} ? ${commentDraft}"></textarea>
+                            <button type="submit" class="btn btn-primary">Post reply</button>
+                        </form>
+                    </details>
+                </div>
+
+                <form class="comment-form" th:action="@{/recipes/{id}/comments(id=${recipe.id()})}" method="post">
+                    <p class="form-problems" th:if="${commentProblem != null and replyToId == null}" th:text="${commentProblem}">Problem.</p>
+                    <label for="comment-text" class="hint">Leave a comment</label>
+                    <textarea id="comment-text" name="body" required th:attr="maxlength=${maxComment}"
+                              th:text="${replyToId == null} ? ${commentDraft}"></textarea>
+                    <button type="submit" class="btn btn-primary">Post comment</button>
+                </form>
+            </section>
         </div>
 
         <aside class="quick-info">
@@ -131,7 +185,7 @@
                 </div>
             </dl>
 
-            <div class="quick-actions">
+            <div class="quick-actions" th:if="${canEdit}">
                 <button type="button" class="btn btn-block" data-open-dialog="planner-day-dialog">Add to weekly planner</button>
                 <a class="btn btn-block" th:href="@{/recipes/{id}/edit(id=${recipe.id()})}">Edit recipe</a>
 
@@ -143,7 +197,7 @@
         </aside>
     </div>
 </main>
-<dialog id="planner-day-dialog" class="modal">
+<dialog id="planner-day-dialog" class="modal" th:if="${canEdit}">
     <form th:action="@{/planner/add}" method="post" data-planner-form data-add-in-place>
         <h2>Add to weekly planner</h2>
         <p th:text="|Each serving becomes one card. Pick the weeks to add ${recipe.recipeName()} to.|">Which weeks?</p>

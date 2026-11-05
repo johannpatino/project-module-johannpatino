@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- The top and bottom rows of every email. Email programs ignore style sheets, so every style is inline. -->
+<table>
+    <tr th:fragment="head">
+        <td style="padding:28px 32px 0;">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:bold;color:#b4451f;">
+                Deliciousnessness
+            </div>
+        </td>
+    </tr>
+
+    <tr th:fragment="foot">
+        <td style="padding:18px 32px 28px;border-top:1px solid #e7e0d6;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6e655c;">
+            You get this because you turned it on in your profile.
+            <th:block th:if="${profileLink}">
+                You can turn it off <a th:href="${profileLink}" style="color:#b4451f;">there</a>.
+            </th:block>
+            <th:block th:unless="${profileLink}">You can turn it off there.</th:block>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

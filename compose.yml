@@ -27,11 +27,23 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/deliciousnessness
       DB_PASSWORD: ${DB_PASSWORD}
       REMEMBER_ME_KEY: ${REMEMBER_ME_KEY}
+      COOKIES_SECURE: ${COOKIES_SECURE:-true}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      MAIL_SSL: ${MAIL_SSL:-false}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-true}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
       APP_SEED_USERNAME: ${APP_SEED_USERNAME:-}
       APP_SEED_PASSWORD: ${APP_SEED_PASSWORD:-}
       JAVA_TOOL_OPTIONS: "-Xmx256m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC"   # add
+    # Only this computer can reach the app directly. Visitors come through the tunnel or proxy,
+    # which also gives them https. Without 127.0.0.1 the app would answer on every network
+    # interface, over plain http, with no https in front of it.
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
 volumes:
   pgdata:

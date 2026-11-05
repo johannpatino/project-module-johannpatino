@@ -25,6 +25,8 @@
             Wrong username or password.
         </p>
         <p class="hint" th:if="${param.logout}">You've been logged out.</p>
+        <p class="hint" th:if="${param.changed}">Your details were changed. Log in again with the new ones.</p>
+        <p class="hint" th:if="${param.registered}">Account created. Log in to browse recipes.</p>
 
         <label class="field">
             <span>Username</span>

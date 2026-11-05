@@ -1,6 +1,7 @@
 package io.everyonecodes.deliciousnessness.security;
 
 import io.everyonecodes.deliciousnessness.model.AppUser;
+import io.everyonecodes.deliciousnessness.model.Role;
 import io.everyonecodes.deliciousnessness.repository.AppUserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -26,7 +27,9 @@ public class UserSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (username.isBlank() || users.existsByUsername(username)) {
+        // Only seeds when there is no owner yet. If the owner renames their account in the profile,
+        // the seed name must not come back as a second owner with the seed password.
+        if (username.isBlank() || users.existsByRoleOrRoleIsNull(Role.USER) || users.existsByUsername(username)) {
             return;
         }
         users.save(new AppUser(username, encoder.encode(password)));

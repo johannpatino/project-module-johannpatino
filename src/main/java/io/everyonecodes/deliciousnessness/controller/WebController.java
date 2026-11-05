@@ -1,12 +1,16 @@
 package io.everyonecodes.deliciousnessness.controller;
 
 import io.everyonecodes.deliciousnessness.dto.CategoryDto;
+import io.everyonecodes.deliciousnessness.dto.CommentDto;
 import io.everyonecodes.deliciousnessness.dto.RecipeDto;
 import io.everyonecodes.deliciousnessness.dto.RecipeForm;
 import io.everyonecodes.deliciousnessness.dto.RecipeSummaryDto;
 import io.everyonecodes.deliciousnessness.model.Language;
 import io.everyonecodes.deliciousnessness.model.Season;
+import io.everyonecodes.deliciousnessness.model.Comment;
 import io.everyonecodes.deliciousnessness.service.CategoryService;
+import io.everyonecodes.deliciousnessness.service.CommentService;
+import org.springframework.security.core.Authentication;
 import io.everyonecodes.deliciousnessness.service.IngredientService;
 import io.everyonecodes.deliciousnessness.service.NutritionService;
 import io.everyonecodes.deliciousnessness.service.PlannerService;
@@ -40,10 +44,12 @@ public class WebController {
     private final IngredientService ingredientService;
     private final PlannerService plannerService;
     private final NutritionService nutritionService;
+    private final CommentService commentService;
 
     public WebController(RecipeService recipeService, CategoryService categoryService,
                          IngredientService ingredientService, PlannerService plannerService,
-                         NutritionService nutritionService) {
+                         NutritionService nutritionService, CommentService commentService) {
+        this.commentService = commentService;
         this.recipeService = recipeService;
         this.categoryService = categoryService;
         this.ingredientService = ingredientService;
@@ -117,12 +123,17 @@ public class WebController {
         model.addAttribute("seasonalRecipes", shuffled.subList(0, Math.min(SEASONAL_LIMIT, shuffled.size())));
     }
     @GetMapping("/{id}")
-    public String detail(@PathVariable Long id, Model model) {
+    public String detail(@PathVariable Long id, Authentication authentication, Model model) {
         RecipeDto recipe = recipeService.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe not found"));
         model.addAttribute("recipe", recipe);
         model.addAttribute("plannerWeeks", plannerService.findWeekOptions());
         model.addAttribute("nutrition", nutritionService.forRecipe(recipe));
+        List<CommentDto> comments =
+                commentService.forRecipe(id, authentication.getName(), AccessAdvice.isOwner(authentication));
+        model.addAttribute("comments", comments);
+        model.addAttribute("commentCount", comments.stream().mapToInt(c -> 1 + c.replies().size()).sum());
+        model.addAttribute("maxComment", Comment.MAX_LENGTH);
         return "recipe-detail";
     }
 

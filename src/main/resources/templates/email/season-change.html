@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The season changed</title>
+</head>
+<body style="margin:0;padding:0;background:#faf7f2;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf7f2;padding:24px 12px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                   style="max-width:560px;background:#ffffff;border:1px solid #e7e0d6;border-radius:14px;">
+                <tr th:replace="~{email/parts :: head}"></tr>
+                <tr>
+                    <td style="padding:16px 32px 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:#1b1815;">
+                        <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.25;color:#1b1815;">
+                            The season changed
+                        </h1>
+                        <p style="margin:0 0 6px;">It's now</p>
+                        <p style="margin:0 0 20px;font-size:20px;font-weight:bold;color:#b4451f;" th:text="${seasonLabel}">Fall &amp; Winter</p>
+                        <p style="margin:0 0 20px;">The front page now shows the recipes that fit this season.</p>
+                        <p style="margin:0;" th:if="${link}">
+                            <a th:href="${link}"
+                               style="display:inline-block;padding:12px 22px;background:#b4451f;color:#ffffff;text-decoration:none;font-weight:bold;border-radius:9px;">
+                                See the recipes</a>
+                        </p>
+                    </td>
+                </tr>
+                <tr th:replace="~{email/parts :: foot}"></tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

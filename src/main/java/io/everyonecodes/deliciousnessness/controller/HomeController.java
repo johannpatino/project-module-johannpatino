@@ -11,6 +11,12 @@ public class HomeController {
     }
 
 
+    // What anyone who is not logged in sees. It says they have no access and shows nothing else.
+    @GetMapping("/private")
+    public String privateSite(){
+        return "private";
+    }
+
     @GetMapping("/login")
     public String login(){
         return "login";

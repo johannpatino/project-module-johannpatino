@@ -9,7 +9,11 @@ public enum Season {
     // The two seasons shown together on the front page: fall and winter from September to February,
     // spring and summer from March to August.
     public static List<Season> inSeasonNow() {
-        return switch (LocalDate.now().getMonth()) {
+        return inSeason(LocalDate.now());
+    }
+
+    public static List<Season> inSeason(LocalDate date) {
+        return switch (date.getMonth()) {
             case MARCH, APRIL, MAY, JUNE, JULY, AUGUST -> List.of(SPRING, SUMMER);
             default -> List.of(FALL, WINTER);
         };

@@ -7,8 +7,13 @@ import io.everyonecodes.deliciousnessness.dto.RecipeSummaryDto;
 import io.everyonecodes.deliciousnessness.mapper.RecipeMapper;
 import io.everyonecodes.deliciousnessness.model.*;
 import io.everyonecodes.deliciousnessness.repository.RecipeRepository;
+import io.everyonecodes.deliciousnessness.security.WebLinks;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -23,8 +28,10 @@ public class RecipeService {
     private final RecipeMapper recipeMapper;
     private final CategoryService categoryService;
     private final IngredientService ingredientService;
+    private final ApplicationEventPublisher events;
 
-    public RecipeService(RecipeRepository recipeRepository, RecipeMapper recipeMapper, CategoryService categoryService, IngredientService ingredientService) {
+    public RecipeService(RecipeRepository recipeRepository, RecipeMapper recipeMapper, CategoryService categoryService, IngredientService ingredientService, ApplicationEventPublisher events) {
+        this.events = events;
         this.recipeRepository = recipeRepository;
         this.recipeMapper = recipeMapper;
         this.categoryService = categoryService;
@@ -39,7 +46,9 @@ public class RecipeService {
         replaceCategories(request, recipe);
         replaceIngredients(request, recipe);
 
-        return recipeMapper.toDto(recipeRepository.save(recipe));
+        Recipe saved = recipeRepository.save(recipe);
+        events.publishEvent(new RecipeCreatedEvent(saved.getId(), saved.getRecipeName()));
+        return recipeMapper.toDto(saved);
     }
 
     @Transactional(readOnly = true)
@@ -117,6 +126,9 @@ public class RecipeService {
     }
 
     private void copyFields(CreateRecipeRequest request, Recipe recipe) {
+        if (!WebLinks.isSafe(request.imageUrl()) || !WebLinks.isSafe(request.sourceUrl())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Links must start with http:// or https://");
+        }
         recipe.setRecipeName((request.recipeName()));
         recipe.setServings(request.servings());
         recipe.setCookTimeMinutes(request.cookTimeMinutes());
