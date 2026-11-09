@@ -77,7 +77,7 @@ public class SecurityConfig {
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(60L * 60 * 24 * 365)))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/css/**", "/js/**", "/login", "/signup/*", "/private", "/error",
+                        .requestMatchers("/css/**", "/js/**", "/icons/**", "/favicon.ico", "/login", "/signup/*", "/private", "/error",
                                 "/robots.txt").permitAll()
                         // Guests can look at recipes, search and filter. Nothing else.
                         .requestMatchers(HttpMethod.GET,

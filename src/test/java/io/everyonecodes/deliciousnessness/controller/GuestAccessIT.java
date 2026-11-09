@@ -116,4 +116,13 @@ class GuestAccessIT {
         user.get().uri("/api/recipes?q=Secret").exchange().expectBody(String.class)
                 .value(body -> assertTrue(body.contains("Secret Porridge")));
     }
+
+    @Test
+    void theLogoAndFaviconsLoadWithoutLoggingIn() {
+        RestTestClient anonymous = RestTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
+        anonymous.get().uri("/icons/logo.svg").exchange().expectStatus().isOk();
+        anonymous.get().uri("/icons/favicon.svg").exchange().expectStatus().isOk();
+        anonymous.get().uri("/icons/apple-touch-icon.png").exchange().expectStatus().isOk();
+        anonymous.get().uri("/favicon.ico").exchange().expectStatus().isOk();
+    }
 }

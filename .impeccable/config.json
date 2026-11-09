@@ -1,0 +1,29 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "fraunces",
+        "createdAt": "2026-11-09T09:55:11.877Z",
+        "reason": "user confirmed: logo must fit the site's existing look, which uses Fraunces"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-09T09:55:12.079Z",
+        "reason": "user confirmed: logo must fit the site's existing look, which uses Inter"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/logo-options.html"
+        ],
+        "createdAt": "2026-11-09T09:55:12.299Z",
+        "reason": "user confirmed: logo preview uses the site's existing paper background"
+      }
+    ]
+  }
+}

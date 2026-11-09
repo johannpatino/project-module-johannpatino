@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.context.event.EventListener;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 public class MailService {
 
     private static final Logger log = LoggerFactory.getLogger(MailService.class);
+    private static final ClassPathResource LOGO = new ClassPathResource("static/icons/logo-email.png");
 
     private final ObjectProvider<JavaMailSender> sender;
     private final String host;
@@ -63,6 +65,9 @@ public class MailService {
             // A line break in a subject could add extra mail headers.
             helper.setSubject(subject.replaceAll("[\\r\\n]+", " "));
             helper.setText(plainText, html);
+            // The logo travels inside the email (the HTML shows it as cid:logo), so email programs show it
+            // without loading anything from the site.
+            helper.addInline("logo", LOGO, "image/png");
             mailSender.send(message);
             log.info("Email sent");
             return true;
