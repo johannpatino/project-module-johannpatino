@@ -5,16 +5,22 @@ import io.everyonecodes.deliciousnessness.dto.PlannerDayDto;
 import io.everyonecodes.deliciousnessness.dto.PlannerEntryDto;
 import io.everyonecodes.deliciousnessness.dto.PlannerRecipeDto;
 import io.everyonecodes.deliciousnessness.dto.PlannerWeekDto;
+import io.everyonecodes.deliciousnessness.model.Nutrient;
 import io.everyonecodes.deliciousnessness.model.PlannerEntry;
+import io.everyonecodes.deliciousnessness.model.PlannerExtra;
 import io.everyonecodes.deliciousnessness.model.PlannerPerson;
 import io.everyonecodes.deliciousnessness.model.PlannerWeek;
 import io.everyonecodes.deliciousnessness.model.Recipe;
+import io.everyonecodes.deliciousnessness.repository.IngredientRepository;
 import io.everyonecodes.deliciousnessness.repository.PlannerEntryRepository;
+import io.everyonecodes.deliciousnessness.repository.PlannerExtraRepository;
 import io.everyonecodes.deliciousnessness.repository.PlannerWeekRepository;
 import io.everyonecodes.deliciousnessness.repository.RecipeRepository;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -25,6 +31,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,13 +45,74 @@ public class PlannerService {
     private final PlannerEntryRepository plannerEntryRepository;
     private final PlannerWeekRepository plannerWeekRepository;
     private final RecipeRepository recipeRepository;
+    private final PlannerExtraRepository plannerExtraRepository;
+    private final IngredientRepository ingredientRepository;
 
     public PlannerService(PlannerEntryRepository plannerEntryRepository,
                           PlannerWeekRepository plannerWeekRepository,
-                          RecipeRepository recipeRepository) {
+                          RecipeRepository recipeRepository,
+                          PlannerExtraRepository plannerExtraRepository,
+                          IngredientRepository ingredientRepository) {
+        this.plannerExtraRepository = plannerExtraRepository;
+        this.ingredientRepository = ingredientRepository;
         this.plannerEntryRepository = plannerEntryRepository;
         this.plannerWeekRepository = plannerWeekRepository;
         this.recipeRepository = recipeRepository;
+    }
+
+    // Saves something a person ate on a day besides the planned dishes. kind is "dish" (recipeId + amount =
+    // servings), "ingredient" (ingredientId + amount + unit) or "snack" (name + nutrients as eaten).
+    // Returns the week id. Anything missing or out of range is a 400, so nothing half-filled is saved.
+    @Transactional
+    public Long addExtra(Long weekId, DayOfWeek day, PlannerPerson person, String kind, Long recipeId,
+                         Long ingredientId, Double amount, String unit, String name, Map<Nutrient, Double> nutrients) {
+        PlannerWeek week = plannerWeekRepository.findById(weekId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Week not found"));
+        if (day == null || person == null) throw badExtra();
+        PlannerExtra extra = new PlannerExtra(week, day, person);
+        switch (kind == null ? "" : kind) {
+            case "dish" -> {
+                if (!isAmount(amount)) throw badExtra();
+                extra.setRecipe(recipeRepository.findById(recipeId == null ? -1 : recipeId).orElseThrow(PlannerService::badExtra));
+                extra.setAmount(amount);
+            }
+            case "ingredient" -> {
+                if (!isAmount(amount)) throw badExtra();
+                extra.setIngredient(ingredientRepository.findById(ingredientId == null ? -1 : ingredientId)
+                        .orElseThrow(PlannerService::badExtra));
+                extra.setAmount(amount);
+                extra.setUnit(Units.normalize(unit));
+            }
+            case "snack" -> {
+                String clean = name == null ? "" : name.strip();
+                if (clean.isEmpty() || clean.length() > 128) throw badExtra();
+                extra.setName(clean);
+                nutrients.forEach((nutrient, value) -> {
+                    if (value == null || value < 0 || !Double.isFinite(value)) throw badExtra();
+                });
+                extra.getNutrients().putAll(nutrients);
+            }
+            default -> throw badExtra();
+        }
+        plannerExtraRepository.save(extra);
+        return weekId;
+    }
+
+    // Removes an extra. Returns its week and day, so the day's nutrition can be shown again.
+    @Transactional
+    public Optional<Map.Entry<Long, DayOfWeek>> removeExtra(Long extraId) {
+        return plannerExtraRepository.findById(extraId).map(extra -> {
+            plannerExtraRepository.delete(extra);
+            return Map.entry(extra.getWeek().getId(), extra.getDayOfWeek());
+        });
+    }
+
+    private static boolean isAmount(Double amount) {
+        return amount != null && amount > 0 && amount <= 10_000;
+    }
+
+    private static ResponseStatusException badExtra() {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fill in who ate it, what it was and how much");
     }
 
     // The Monday of the current week. Weeks that start before this are past.

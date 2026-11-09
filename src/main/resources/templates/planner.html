@@ -152,6 +152,92 @@
     <div data-day-nutrition-body></div>
 </dialog>
 
+<!-- "Add extra", opened from the day nutrition popup: something eaten besides the planned dishes.
+     planner.js sends it and puts the day's new totals into the nutrition popup. -->
+<dialog id="extra-dialog" class="modal planner-dialog extra-dialog">
+    <form method="post" th:action="@{/planner}" data-extra-form>
+        <div class="dialog-head">
+            <h2>Add extra</h2>
+            <button type="button" class="dialog-close" data-close-dialog aria-label="Close">&times;</button>
+        </div>
+
+        <fieldset class="day-picker">
+            <legend>Who ate it?</legend>
+            <div class="day-checks">
+                <label><input type="radio" name="person" value="ELA" required> Ela</label>
+                <label><input type="radio" name="person" value="JOHANN"> Johann</label>
+            </div>
+        </fieldset>
+
+        <fieldset class="day-picker">
+            <legend>What was it?</legend>
+            <div class="day-checks">
+                <label><input type="radio" name="kind" value="dish" checked> A snack recipe</label>
+                <label><input type="radio" name="kind" value="ingredient"> An ingredient</label>
+                <label><input type="radio" name="kind" value="snack"> A custom snack</label>
+            </div>
+        </fieldset>
+
+        <fieldset class="extra-fields" data-kind="dish">
+            <p class="hint" th:if="${#lists.isEmpty(snackRecipes)}">No recipe has the category "snack" yet.</p>
+            <!-- One box: click it for the whole list of snack recipes, type to narrow it down. -->
+            <label class="field extra-search"><span>Snack</span>
+                <input type="text" data-snack-search placeholder="Choose or type to search…" autocomplete="off"
+                       role="combobox" aria-expanded="false" aria-autocomplete="list">
+                <ul class="suggestions" data-snack-list role="listbox" hidden>
+                    <li th:each="recipe : ${snackRecipes}" role="option" th:data-id="${recipe.id()}"
+                        th:text="${recipe.recipeName()}">Fruit bowl</li>
+                    <li class="suggestions-empty" data-snack-empty hidden>No snack matches.</li>
+                </ul>
+            </label>
+            <input type="hidden" name="recipeId">
+            <label class="field extra-servings"><span>Servings</span>
+                <input type="number" name="amount" min="0.25" step="0.25" value="1" required>
+            </label>
+        </fieldset>
+
+        <fieldset class="extra-fields" data-kind="ingredient" hidden disabled>
+            <label class="field extra-search"><span>Ingredient</span>
+                <input type="text" data-extra-search autocomplete="off" placeholder="Banana, apple…" required>
+                <ul class="suggestions" data-extra-suggestions hidden></ul>
+            </label>
+            <input type="hidden" name="ingredientId">
+            <div class="field-row">
+                <label class="field"><span>Amount</span>
+                    <input type="number" name="amount" min="0" step="any" value="1" required>
+                </label>
+                <label class="field"><span>Unit</span>
+                    <select name="unit" data-extra-unit>
+                        <option value="g">g</option>
+                        <option value="kg">kg</option>
+                    </select>
+                </label>
+            </div>
+            <p class="hint">Only units with grams saved on the ingredients page are listed.</p>
+        </fieldset>
+
+        <fieldset class="extra-fields" data-kind="snack" hidden disabled>
+            <label class="field"><span>Name</span>
+                <input type="text" name="name" maxlength="128" placeholder="Chips, chocolate…" required>
+            </label>
+            <p class="hint">The values for everything that was eaten, not per 100 g. Leave a box empty if you don't know it.</p>
+            <div class="extra-nutrients">
+                <label class="field" th:each="n : ${nutrients}">
+                    <span th:text="|${n.label()} (${n.unit()})|">Calories (kcal)</span>
+                    <input type="number" min="0" step="any" th:name="|nutrition:${n}|">
+                </label>
+            </div>
+        </fieldset>
+
+        <p class="nutr-note is-partial" data-extra-error hidden></p>
+
+        <div class="modal-actions">
+            <button type="button" class="btn" data-close-dialog>Cancel</button>
+            <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+    </form>
+</dialog>
+
 <div th:replace="~{fragments/confirm :: dialog}"></div>
 <script th:src="@{/js/confirm.js}"></script>
 <script th:src="@{/js/planner.js}"></script>

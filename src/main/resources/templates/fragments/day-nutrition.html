@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- The nutrition popup for one day of the planner: Ela, Johann and the whole day, plus the dishes. -->
+<!-- The nutrition popup for one day of the planner: Ela and Johann, plus the dishes and extras. -->
 <div th:fragment="totals" class="day-nutrition">
     <h3 th:text="${#strings.capitalize(#strings.toLowerCase(day))}">Monday</h3>
 
@@ -12,14 +12,13 @@
 
         <table class="day-totals" th:if="${nutrition.hasValues()}">
             <thead>
-                <tr><th></th><th>Ela</th><th>Johann</th><th>Whole day</th></tr>
+                <tr><th></th><th>Ela</th><th>Johann</th></tr>
             </thead>
             <tbody>
                 <tr th:each="row : ${nutrition.rows()}" th:classappend="${row.part()} ? 'is-sub'">
                     <td th:text="|${row.label()} (${row.unit()})|">Calories (kcal)</td>
                     <td th:text="${row.ela()}">0</td>
                     <td th:text="${row.johann()}">0</td>
-                    <td th:text="${row.day()}">0</td>
                 </tr>
             </tbody>
         </table>
@@ -30,20 +29,27 @@
 
         <p class="nutr-note" th:classappend="${!nutrition.isComplete()} ? 'is-partial'"
            th:text="${nutrition.isComplete()}
-               ? 'Every dish is counted in full.'
-               : |${nutrition.completeDishes()} of ${#lists.size(nutrition.dishes())} ${#lists.size(nutrition.dishes()) == 1 ? 'dish' : 'dishes'} counted in full. The rest are missing some ingredients, so the real values are a bit higher.|">
-            Every dish is counted in full.</p>
+               ? 'Everything is counted in full.'
+               : |${nutrition.completeDishes()} of ${#lists.size(nutrition.dishes())} counted in full. The rest are missing some ingredients, so the real values are a bit higher.|">
+            Everything is counted in full.</p>
+
+        <p class="nutr-note">A planned serving counts as 0.8 for Ela and 1.2 for Johann.</p>
 
         <p class="nutr-note" th:if="${nutrition.unassignedDishes() > 0}">
-            Some dishes have no person, so they count in the whole-day column only.
+            Some dishes have no person, so they don't count for anyone.
         </p>
 
-        <h4 class="day-sub">Dishes <span>kcal per serving</span></h4>
+        <h4 class="day-sub">Dishes <span>kcal</span></h4>
         <ul class="day-dishes">
             <li th:each="dish : ${nutrition.dishes()}">
                 <span th:text="${dish.name()}">Chickpea curry</span>
                 <span class="day-dish-who" th:if="${dish.person() != null}" th:text="${dish.person()}">Ela</span>
-                <span class="day-dish-kcal" th:text="${dish.kcalPerServing() == null} ? '–' : |${dish.kcalPerServing()} kcal|">649 kcal</span>
+                <span class="day-dish-kcal" th:text="${dish.kcal() == null} ? '–' : |${dish.kcal()} kcal|">649 kcal</span>
+                <form th:if="${dish.extraId() != null}" method="post" data-extra-delete
+                      th:action="@{/planner/extras/{id}/delete(id=${dish.extraId()})}">
+                    <button type="submit" class="day-dish-remove"
+                            th:attr="aria-label=|Remove ${dish.name()}|">&times;</button>
+                </form>
             </li>
         </ul>
 
@@ -56,6 +62,9 @@
             </li>
         </ul>
     </th:block>
+
+    <button type="button" class="btn btn-small day-extra-btn" data-add-extra
+            th:data-url="@{/planner/weeks/{week}/days/{day}/extras(week=${weekId}, day=${day})}">+ Add extra</button>
 </div>
 
 </body>

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -28,6 +29,13 @@ public class IngredientWeightController {
         model.addAttribute("searchText", q);
         model.addAttribute("onlyMissing", Boolean.TRUE.equals(missing));
         return "planner-ingredients";
+    }
+
+    // For the planner's "Add extra" popup: the units this ingredient has grams for.
+    @GetMapping("/{id}/units")
+    @ResponseBody
+    public List<String> units(@PathVariable Long id) {
+        return ingredientWeightService.unitsWithGrams(id);
     }
 
     // The form fields are "grams:<unit>" and "nutrition:<NUTRIENT>", so the form sends them as a map.

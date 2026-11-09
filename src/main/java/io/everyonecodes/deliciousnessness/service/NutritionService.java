@@ -12,10 +12,12 @@ import io.everyonecodes.deliciousnessness.model.Ingredient;
 import io.everyonecodes.deliciousnessness.model.IngredientUnitWeight;
 import io.everyonecodes.deliciousnessness.model.Nutrient;
 import io.everyonecodes.deliciousnessness.model.PlannerEntry;
+import io.everyonecodes.deliciousnessness.model.PlannerExtra;
 import io.everyonecodes.deliciousnessness.model.PlannerPerson;
 import io.everyonecodes.deliciousnessness.repository.IngredientRepository;
 import io.everyonecodes.deliciousnessness.repository.IngredientUnitWeightRepository;
 import io.everyonecodes.deliciousnessness.repository.PlannerEntryRepository;
+import io.everyonecodes.deliciousnessness.repository.PlannerExtraRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,14 +36,17 @@ public class NutritionService {
     private final IngredientRepository ingredientRepository;
     private final IngredientUnitWeightRepository weightRepository;
     private final PlannerEntryRepository plannerEntryRepository;
+    private final PlannerExtraRepository plannerExtraRepository;
 
     public NutritionService(RecipeService recipeService, IngredientRepository ingredientRepository,
                             IngredientUnitWeightRepository weightRepository,
-                            PlannerEntryRepository plannerEntryRepository) {
+                            PlannerEntryRepository plannerEntryRepository,
+                            PlannerExtraRepository plannerExtraRepository) {
         this.recipeService = recipeService;
         this.ingredientRepository = ingredientRepository;
         this.weightRepository = weightRepository;
         this.plannerEntryRepository = plannerEntryRepository;
+        this.plannerExtraRepository = plannerExtraRepository;
     }
 
     // One recipe, as on its own page: each number is per serving, with the whole dish under it.
@@ -57,48 +62,81 @@ public class NutritionService {
                 counted.gaps());
     }
 
-    // The planner's whole day. Each card is one serving of its recipe, so the day's numbers add up
-    // every dish's per-serving amounts, split into Ela, Johann and the whole day.
+    // The planner's day, for Ela and Johann. A planned card is one serving, and each person eats their own
+    // share of it (PlannerPerson.portion). Extras come on top: a dish by its servings (with the same share),
+    // an ingredient by its amount, a custom snack as typed. Cards with no person are listed but count for nobody.
     @Transactional(readOnly = true)
     public DayNutritionDto forDay(Long weekId, DayOfWeek day) {
         Map<Long, Counted> countedByRecipe = new HashMap<>();
-        Map<Nutrient, Double> total = new EnumMap<>(Nutrient.class);
         Map<PlannerPerson, Map<Nutrient, Double>> byPerson = new EnumMap<>(PlannerPerson.class);
         List<DishNutritionDto> dishes = new ArrayList<>();
         List<NutritionGapDto> gaps = new ArrayList<>();
         int completeDishes = 0;
         int unassignedDishes = 0;
+        boolean hasValues = false;
 
         for (PlannerEntry card : plannerEntryRepository.findAllByWeekIdOrderByIdAsc(weekId)) {
             if (card.getDayOfWeek() != day) continue;
 
-            Counted counted = countedByRecipe.computeIfAbsent(card.getRecipe().getId(),
-                    id -> recipeService.findById(id).map(this::count).orElseThrow());
+            Counted counted = counted(countedByRecipe, card.getRecipe().getId());
             PlannerPerson person = card.getPerson();
-
-            addPerServing(total, counted);
+            Map<Nutrient, Double> eaten = scaled(counted.total(),
+                    (person == null ? 1 : person.portion()) / counted.servings());
             if (person == null) {
                 unassignedDishes++;
             } else {
-                addPerServing(byPerson.computeIfAbsent(person, p -> new EnumMap<Nutrient, Double>(Nutrient.class)),
-                        counted);
+                addTo(byPerson, person, eaten);
             }
-
-            dishes.add(new DishNutritionDto(card.getRecipe().getRecipeName(), labelOf(person),
-                    perServingKcal(counted)));
+            dishes.add(new DishNutritionDto(card.getRecipe().getRecipeName(),
+                    person == null ? null : person.label(), kcalOf(eaten), null));
+            hasValues |= !eaten.isEmpty();
             gaps.addAll(counted.gaps());
             if (counted.gaps().isEmpty()) completeDishes++;
         }
 
-        Map<Nutrient, Double> ela = byPerson.getOrDefault(PlannerPerson.ELA, Map.of());
-        Map<Nutrient, Double> johann = byPerson.getOrDefault(PlannerPerson.JOHANN, Map.of());
+        for (PlannerExtra extra : plannerExtraRepository.findAllByWeekIdAndDayOfWeekOrderByIdAsc(weekId, day)) {
+            PlannerPerson person = extra.getPerson();
+            Map<Nutrient, Double> eaten;
+            List<NutritionGapDto> extraGaps = new ArrayList<>();
+            String name;
+            if (extra.getRecipe() != null) {
+                Counted counted = counted(countedByRecipe, extra.getRecipe().getId());
+                eaten = scaled(counted.total(), extra.getAmount() * person.portion() / counted.servings());
+                extraGaps = counted.gaps();
+                name = extra.getRecipe().getRecipeName() + " · " + plain(extra.getAmount())
+                        + (extra.getAmount() == 1 ? " serving" : " servings");
+            } else if (extra.getIngredient() != null) {
+                Ingredient ingredient = extra.getIngredient();
+                eaten = new EnumMap<>(Nutrient.class);
+                addLine(ingredient.getId(), ingredient.getCanonicalName(), extra.getAmount(), extra.getUnit(),
+                        ingredient.getNutrients(),
+                        gramsPerUnit(Set.of(ingredient.getId())).getOrDefault(ingredient.getId(), Map.of()),
+                        eaten, extraGaps);
+                name = ingredient.getCanonicalName() + " · " + plain(extra.getAmount()) + " "
+                        + (extra.getUnit().isEmpty() ? "piece" : extra.getUnit());
+            } else {
+                eaten = extra.getNutrients();
+                name = extra.getName();
+            }
+            addTo(byPerson, person, eaten);
+            dishes.add(new DishNutritionDto(name, person.label(), kcalOf(eaten), extra.getId()));
+            hasValues |= !eaten.isEmpty();
+            gaps.addAll(extraGaps);
+            if (extraGaps.isEmpty()) completeDishes++;
+        }
+
         return new DayNutritionDto(
-                nutrientRows(ela, johann, total),
+                nutrientRows(byPerson.getOrDefault(PlannerPerson.ELA, Map.of()),
+                        byPerson.getOrDefault(PlannerPerson.JOHANN, Map.of())),
                 dishes,
                 completeDishes,
                 unassignedDishes,
                 gaps.stream().distinct().toList(),
-                !total.isEmpty());
+                hasValues);
+    }
+
+    private Counted counted(Map<Long, Counted> cache, Long recipeId) {
+        return cache.computeIfAbsent(recipeId, id -> recipeService.findById(id).map(this::count).orElseThrow());
     }
 
     // Adds up one whole recipe. Lines that can't be counted are listed as gaps, so the numbers are
@@ -109,44 +147,59 @@ public class NutritionService {
 
         Map<Long, Ingredient> ingredients = new HashMap<>();
         ingredientRepository.findAllById(ids).forEach(ingredient -> ingredients.put(ingredient.getId(), ingredient));
-        Map<Long, Map<String, Double>> gramsPerUnit = new HashMap<>();
-        for (IngredientUnitWeight weight : weightRepository.findAllByIngredientIdIn(ids)) {
-            gramsPerUnit.computeIfAbsent(weight.getIngredient().getId(), id -> new HashMap<>())
-                    .put(weight.getUnit(), weight.getGrams());
-        }
+        Map<Long, Map<String, Double>> gramsPerUnit = gramsPerUnit(ids);
 
         Map<Nutrient, Double> total = new EnumMap<>(Nutrient.class);
         List<NutritionGapDto> gaps = new ArrayList<>();
         int used = 0;
 
         for (RecipeIngredientDto line : lines) {
-            if (line.quantity() == null || line.quantity() <= 0) {
-                gaps.add(new NutritionGapDto(line.ingredientId(), line.ingredientName(), "no amount given", false));
-                continue;
+            if (addLine(line.ingredientId(), line.ingredientName(), line.quantity(), line.unit(),
+                    ingredients.get(line.ingredientId()).getNutrients(),
+                    gramsPerUnit.getOrDefault(line.ingredientId(), Map.of()), total, gaps)) {
+                used++;
             }
-            String unit = Units.normalize(line.unit());
-            Double grams = Units.weightInGrams(unit);
-            if (grams == null) {
-                grams = gramsPerUnit.getOrDefault(line.ingredientId(), Map.of()).get(unit);
-            }
-            if (grams == null) {
-                String name = unit.isEmpty() ? "piece" : unit;
-                gaps.add(new NutritionGapDto(line.ingredientId(), line.ingredientName(), "no grams for " + name, true));
-                continue;
-            }
-            Map<Nutrient, Double> per100g = ingredients.get(line.ingredientId()).getNutrients();
-            if (per100g.isEmpty()) {
-                gaps.add(new NutritionGapDto(line.ingredientId(), line.ingredientName(), "no nutrition values", true));
-                continue;
-            }
-
-            double lineGrams = line.quantity() * grams;
-            per100g.forEach((nutrient, value) -> total.merge(nutrient, value * lineGrams / 100, Double::sum));
-            used++;
         }
 
         int servings = recipe.servings() == null ? 1 : Math.max(1, recipe.servings());
         return new Counted(total, servings, used, lines.size(), gaps);
+    }
+
+    // Adds one amount of one ingredient to total. False, with the reason added to gaps, when it can't be counted.
+    private static boolean addLine(Long ingredientId, String ingredientName, Double quantity, String rawUnit,
+                                   Map<Nutrient, Double> per100g, Map<String, Double> gramsPerUnit,
+                                   Map<Nutrient, Double> total, List<NutritionGapDto> gaps) {
+        if (quantity == null || quantity <= 0) {
+            gaps.add(new NutritionGapDto(ingredientId, ingredientName, "no amount given", false));
+            return false;
+        }
+        String unit = Units.normalize(rawUnit);
+        Double grams = Units.weightInGrams(unit);
+        if (grams == null) {
+            grams = gramsPerUnit.get(unit);
+        }
+        if (grams == null) {
+            String name = unit.isEmpty() ? "piece" : unit;
+            gaps.add(new NutritionGapDto(ingredientId, ingredientName, "no grams for " + name, true));
+            return false;
+        }
+        if (per100g.isEmpty()) {
+            gaps.add(new NutritionGapDto(ingredientId, ingredientName, "no nutrition values", true));
+            return false;
+        }
+        double lineGrams = quantity * grams;
+        per100g.forEach((nutrient, value) -> total.merge(nutrient, value * lineGrams / 100, Double::sum));
+        return true;
+    }
+
+    // Saved grams per unit, by ingredient id.
+    private Map<Long, Map<String, Double>> gramsPerUnit(Set<Long> ingredientIds) {
+        Map<Long, Map<String, Double>> gramsPerUnit = new HashMap<>();
+        for (IngredientUnitWeight weight : weightRepository.findAllByIngredientIdIn(ingredientIds)) {
+            gramsPerUnit.computeIfAbsent(weight.getIngredient().getId(), id -> new HashMap<>())
+                    .put(weight.getUnit(), weight.getGrams());
+        }
+        return gramsPerUnit;
     }
 
     // One box per main nutrient: the per-serving amount, and the whole-dish amount under it.
@@ -168,20 +221,25 @@ public class NutritionService {
     }
 
     // One row per nutrient, in enum order, so each "of which" line sits right under its fat or carbs.
-    private static List<NutritionRowDto> nutrientRows(Map<Nutrient, Double> ela, Map<Nutrient, Double> johann,
-                                                      Map<Nutrient, Double> day) {
+    private static List<NutritionRowDto> nutrientRows(Map<Nutrient, Double> ela, Map<Nutrient, Double> johann) {
         List<NutritionRowDto> rows = new ArrayList<>();
         for (Nutrient nutrient : Nutrient.values()) {
             rows.add(new NutritionRowDto(nutrient.label(), nutrient.unit(),
-                    amount(ela, nutrient, 1), amount(johann, nutrient, 1), amount(day, nutrient, 1),
-                    nutrient.isPart()));
+                    amount(ela, nutrient, 1), amount(johann, nutrient, 1), nutrient.isPart()));
         }
         return rows;
     }
 
-    // A dish is one serving, so its whole-dish amounts are divided by the recipe's servings.
-    private static void addPerServing(Map<Nutrient, Double> sum, Counted counted) {
-        counted.total().forEach((nutrient, amount) -> sum.merge(nutrient, amount / counted.servings(), Double::sum));
+    private static Map<Nutrient, Double> scaled(Map<Nutrient, Double> values, double factor) {
+        Map<Nutrient, Double> result = new EnumMap<>(Nutrient.class);
+        values.forEach((nutrient, amount) -> result.put(nutrient, amount * factor));
+        return result;
+    }
+
+    private static void addTo(Map<PlannerPerson, Map<Nutrient, Double>> byPerson, PlannerPerson person,
+                              Map<Nutrient, Double> eaten) {
+        Map<Nutrient, Double> sum = byPerson.computeIfAbsent(person, p -> new EnumMap<>(Nutrient.class));
+        eaten.forEach((nutrient, amount) -> sum.merge(nutrient, amount, Double::sum));
     }
 
     // Null when the recipe has no calorie values, so the page shows nothing instead of 0.
@@ -190,10 +248,14 @@ public class NutritionService {
         return kcal == null ? null : format(kcal / counted.servings());
     }
 
-    private static String labelOf(PlannerPerson person) {
-        if (person == null) return null;
-        String name = person.name();
-        return name.charAt(0) + name.substring(1).toLowerCase();
+    private static String kcalOf(Map<Nutrient, Double> values) {
+        Double kcal = values.get(Nutrient.KCAL);
+        return kcal == null ? null : format(kcal);
+    }
+
+    // An amount as it was typed: 1, 0.5, 2.25.
+    private static String plain(double value) {
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
     private static String amount(Map<Nutrient, Double> total, Nutrient nutrient, int divideBy) {

@@ -261,22 +261,197 @@
     });
 
     // The Nutrition button under a day: the totals are fetched when it is clicked, not on page load.
+    const dayDialog = document.getElementById('day-nutrition-dialog');
+    const dayBody = dayDialog.querySelector('[data-day-nutrition-body]');
+
+    // Fetches the day's nutrition (or sends a change that answers with it) and shows it in the popup.
+    async function loadDay(url, options) {
+        const response = await fetch(url, {credentials: 'same-origin', ...options});
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        dayBody.innerHTML = await response.text();
+    }
+
     document.querySelectorAll('[data-day-nutrition]').forEach(button => {
         button.addEventListener('click', async () => {
-            const dialog = document.getElementById('day-nutrition-dialog');
-            const body = dialog.querySelector('[data-day-nutrition-body]');
-            body.textContent = 'Loading...';
-            dialog.showModal();
+            dayBody.textContent = 'Loading...';
+            dayDialog.showModal();
             try {
-                const url = `/planner/weeks/${button.dataset.weekId}/days/${button.dataset.day}/nutrition`;
-                const response = await fetch(url, {credentials: 'same-origin'});
-                if (!response.ok) throw new Error('HTTP ' + response.status);
-                body.innerHTML = await response.text();
+                await loadDay(`/planner/weeks/${button.dataset.weekId}/days/${button.dataset.day}/nutrition`);
             } catch (error) {
-                body.textContent = "Couldn't load this day's nutrition. Try again.";
+                dayBody.textContent = "Couldn't load this day's nutrition. Try again.";
             }
         });
     });
+
+    // "Add extra" opens a second popup. The day's body is replaced after every change, so its clicks
+    // are caught on the popup itself.
+    const extraDialog = document.getElementById('extra-dialog');
+    const extraForm = extraDialog.querySelector('[data-extra-form]');
+    const extraError = extraForm.querySelector('[data-extra-error]');
+    const extraSearch = extraForm.querySelector('[data-extra-search]');
+    const extraSuggestions = extraForm.querySelector('[data-extra-suggestions]');
+    const extraUnit = extraForm.querySelector('[data-extra-unit]');
+    const ingredientId = extraForm.querySelector('[name="ingredientId"]');
+
+    dayBody.addEventListener('click', event => {
+        const button = event.target.closest('[data-add-extra]');
+        if (!button) return;
+        extraForm.reset();
+        ingredientId.value = '';
+        extraSuggestions.hidden = true;
+        fillUnits([]);
+        recipeId.value = '';
+        openSnacks(false);
+        showKind('dish');
+        extraForm.dataset.url = button.dataset.url;
+        extraError.hidden = true;
+        extraDialog.showModal();
+    });
+
+    dayBody.addEventListener('submit', async event => {
+        const form = event.target.closest('[data-extra-delete]');
+        if (!form) return;
+        event.preventDefault();
+        try {
+            await loadDay(form.action, {method: 'POST', body: new FormData(form)});
+        } catch (error) {
+            form.closest('li').append(" Couldn't remove it. Try again.");
+        }
+    });
+
+    // Only the chosen kind's boxes are shown and sent. The browser skips a disabled fieldset.
+    function showKind(kind) {
+        extraForm.querySelectorAll('[data-kind]').forEach(fields => {
+            fields.hidden = fields.dataset.kind !== kind;
+            fields.disabled = fields.hidden;
+        });
+    }
+
+    extraForm.addEventListener('change', event => {
+        if (event.target.name === 'kind') showKind(event.target.value);
+    });
+
+    extraForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const kind = extraForm.querySelector('[name="kind"]:checked').value;
+        if (kind === 'dish' && !recipeId.value) {
+            showExtraError('Pick the snack from the list.');
+            return;
+        }
+        if (kind === 'ingredient' && !ingredientId.value) {
+            showExtraError('Pick the ingredient from the list.');
+            return;
+        }
+        try {
+            await loadDay(extraForm.dataset.url, {method: 'POST', body: new FormData(extraForm)});
+            extraDialog.close();
+        } catch (error) {
+            showExtraError("Couldn't add it. Check the boxes and try again.");
+        }
+    });
+
+    function showExtraError(text) {
+        extraError.textContent = text;
+        extraError.hidden = false;
+    }
+
+    // The snack box is a dropdown: focusing it opens the list of snack recipes, typing narrows it,
+    // and clicking one (or Enter for the first match) picks it. Typing again forgets the pick.
+    const snackSearch = extraForm.querySelector('[data-snack-search]');
+    const snackList = extraForm.querySelector('[data-snack-list]');
+    const snackEmpty = extraForm.querySelector('[data-snack-empty]');
+    const snackItems = [...snackList.querySelectorAll('[data-id]')];
+    const recipeId = extraForm.querySelector('[name="recipeId"]');
+
+    function filterSnacks() {
+        const text = snackSearch.value.trim().toLowerCase();
+        snackItems.forEach(item => item.hidden = !item.textContent.toLowerCase().includes(text));
+        snackEmpty.hidden = snackItems.some(item => !item.hidden);
+    }
+
+    function openSnacks(open) {
+        snackList.hidden = !open;
+        snackSearch.setAttribute('aria-expanded', open);
+    }
+
+    function pickSnack(item) {
+        recipeId.value = item.dataset.id;
+        snackSearch.value = item.textContent;
+        openSnacks(false);
+    }
+
+    snackSearch.addEventListener('focus', () => {
+        filterSnacks();
+        openSnacks(true);
+    });
+    snackSearch.addEventListener('click', () => openSnacks(true));
+    snackSearch.addEventListener('input', () => {
+        recipeId.value = '';
+        filterSnacks();
+        openSnacks(true);
+    });
+    snackSearch.addEventListener('blur', () => openSnacks(false));
+    snackSearch.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const first = snackItems.find(item => !item.hidden);
+            if (first) pickSnack(first);
+        } else if (event.key === 'Escape' && !snackList.hidden) {
+            event.preventDefault(); // closes the list, not the popup
+            openSnacks(false);
+        }
+    });
+    // mousedown, not click: it comes before the box loses focus and closes the list.
+    snackList.addEventListener('mousedown', event => {
+        const item = event.target.closest('[data-id]');
+        if (!item) return;
+        event.preventDefault();
+        pickSnack(item);
+    });
+    // The list sits inside the box's label, so a click on it would open the list again.
+    snackList.addEventListener('click', event => event.preventDefault());
+
+    // Ingredient search, as on the recipe list. Typing again forgets the ingredient picked before.
+    let searchTimer;
+    extraSearch.addEventListener('input', () => {
+        ingredientId.value = '';
+        clearTimeout(searchTimer);
+        const query = extraSearch.value.trim();
+        if (query.length < 2) {
+            extraSuggestions.hidden = true;
+            return;
+        }
+        searchTimer = setTimeout(async () => {
+            const response = await fetch('/api/ingredients/autocomplete?q=' + encodeURIComponent(query));
+            if (!response.ok) return;
+            const suggestions = await response.json();
+            extraSuggestions.innerHTML = '';
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('li');
+                item.textContent = suggestion.matchedName;
+                item.addEventListener('click', () => pickIngredient(suggestion));
+                extraSuggestions.appendChild(item);
+            });
+            extraSuggestions.hidden = suggestions.length === 0;
+        }, 300);
+    });
+
+    async function pickIngredient(suggestion) {
+        ingredientId.value = suggestion.id;
+        extraSearch.value = suggestion.canonicalName;
+        extraSuggestions.hidden = true;
+        const response = await fetch(`/planner/ingredients/${suggestion.id}/units`, {credentials: 'same-origin'});
+        fillUnits(response.ok ? await response.json() : []);
+    }
+
+    // A piece with no unit is saved as "". The first unit after g and kg is picked, since a banana or an
+    // apple is usually counted in pieces, not weighed.
+    function fillUnits(units) {
+        const all = units.length ? units : ['g', 'kg'];
+        extraUnit.innerHTML = '';
+        all.forEach(unit => extraUnit.add(new Option(unit === '' ? 'piece' : unit, unit)));
+        extraUnit.selectedIndex = all.length > 2 ? 2 : 0;
+    }
 
     // "Add to planner" stays disabled until at least one week and one recipe are chosen.
     document.querySelectorAll('[data-planner-form]').forEach(form => {

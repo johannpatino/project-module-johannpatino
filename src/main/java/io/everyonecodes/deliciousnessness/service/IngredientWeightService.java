@@ -86,6 +86,17 @@ public class IngredientWeightService {
         return new IngredientUnitsDto(id, name, recipeCount, units, values, withoutGrams, !nutrients.isEmpty());
     }
 
+    // g and kg always work. Then every unit with saved grams ("" is a piece with no unit).
+    @Transactional(readOnly = true)
+    public List<String> unitsWithGrams(Long ingredientId) {
+        List<String> units = new ArrayList<>(List.of("g", "kg"));
+        weightRepository.findAllByIngredientIdIn(List.of(ingredientId)).stream()
+                .map(IngredientUnitWeight::getUnit)
+                .sorted()
+                .forEach(units::add);
+        return units;
+    }
+
     // params has fields named "grams:<unit>" and "nutrition:<NUTRIENT>". A blank box removes the saved value.
     // Text that isn't a number (or is negative) is ignored, so a typo never deletes anything.
     @Transactional
@@ -174,7 +185,7 @@ public class IngredientWeightService {
     }
 
     // "12,5" and "12.5" both work. Null when it isn't a number.
-    private static Double parse(String text) {
+    public static Double parse(String text) {
         try {
             double value = Double.parseDouble(text.trim().replace(',', '.'));
             return Double.isFinite(value) ? value : null;
