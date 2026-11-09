@@ -59,6 +59,10 @@ public class Recipe {
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredient> recipeIngredients = new ArrayList<>();
 
+    public boolean isPrivate() {
+        return categories.stream().anyMatch(c -> Category.PRIVATE.equalsIgnoreCase(c.getName()));
+    }
+
     public void addIngredient(RecipeIngredient recipeIngredient) {
         recipeIngredients.add(recipeIngredient);
         recipeIngredient.setRecipe(this);

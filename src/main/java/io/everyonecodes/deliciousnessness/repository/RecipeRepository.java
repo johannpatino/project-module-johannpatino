@@ -60,4 +60,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     List<Long> findIdsByAnySeason(@Param("seasons") Collection<Season> seasons);
 
     List<Recipe> findByCategoriesId(Long categoryId);
+
+    @Query("SELECT r.id FROM Recipe r JOIN r.categories c WHERE lower(c.name) = lower(:name)")
+    List<Long> findIdsByCategoryName(@Param("name") String name);
 }

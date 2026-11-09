@@ -1,5 +1,6 @@
 package io.everyonecodes.deliciousnessness.service;
 
+import io.everyonecodes.deliciousnessness.controller.AccessAdvice;
 import io.everyonecodes.deliciousnessness.dto.CreateRecipeIngredientRequest;
 import io.everyonecodes.deliciousnessness.dto.CreateRecipeRequest;
 import io.everyonecodes.deliciousnessness.dto.RecipeDto;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -47,13 +49,17 @@ public class RecipeService {
         replaceIngredients(request, recipe);
 
         Recipe saved = recipeRepository.save(recipe);
-        events.publishEvent(new RecipeCreatedEvent(saved.getId(), saved.getRecipeName()));
+        // A private recipe is nobody else's business, so no one is told it was added.
+        if (!saved.isPrivate()) {
+            events.publishEvent(new RecipeCreatedEvent(saved.getId(), saved.getRecipeName()));
+        }
         return recipeMapper.toDto(saved);
     }
 
     @Transactional(readOnly = true)
     public Optional<RecipeDto> findById(Long id) {
         return recipeRepository.findById(id)
+                .filter(recipe -> !recipe.isPrivate() || AccessAdvice.ownerIsViewing())
                 .map(recipeMapper::toDto);
     }
 
@@ -94,14 +100,17 @@ public class RecipeService {
                     : recipeRepository.findIdsByAllSeasons(distinctSeasons, distinctSeasons.size()));
         }
 
-        if (matchingIds == null) {
-            return recipeRepository.findAllByOrderByCreatedAtDesc();
-        }
-        if (matchingIds.isEmpty()) {
+        if (matchingIds != null && matchingIds.isEmpty()) {
             return List.of();
         }
-
-        return recipeRepository.findByIdInOrderByCreatedAtDesc(matchingIds);
+        List<RecipeSummaryDto> found = matchingIds == null
+                ? recipeRepository.findAllByOrderByCreatedAtDesc()
+                : recipeRepository.findByIdInOrderByCreatedAtDesc(matchingIds);
+        if (AccessAdvice.ownerIsViewing()) {
+            return found;
+        }
+        Set<Long> hidden = new HashSet<>(recipeRepository.findIdsByCategoryName(Category.PRIVATE));
+        return found.stream().filter(recipe -> !hidden.contains(recipe.id())).toList();
     }
 
     @Transactional

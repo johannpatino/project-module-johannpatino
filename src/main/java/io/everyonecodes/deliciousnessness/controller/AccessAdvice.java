@@ -2,6 +2,7 @@ package io.everyonecodes.deliciousnessness.controller;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
@@ -13,6 +14,11 @@ public class AccessAdvice {
     public static boolean isOwner(Authentication authentication) {
         return authentication != null
                 && AuthorityUtils.authorityListToSet(authentication.getAuthorities()).contains("ROLE_USER");
+    }
+
+    // For services: whoever made the current request. False with no one logged in.
+    public static boolean ownerIsViewing() {
+        return isOwner(SecurityContextHolder.getContext().getAuthentication());
     }
 
     @ModelAttribute("canEdit")

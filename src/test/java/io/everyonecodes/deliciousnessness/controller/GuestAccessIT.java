@@ -8,10 +8,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import io.everyonecodes.deliciousnessness.dto.CreateRecipeRequest;
+import io.everyonecodes.deliciousnessness.dto.RecipeDto;
+import io.everyonecodes.deliciousnessness.model.Language;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
+
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -85,5 +94,26 @@ class GuestAccessIT {
         guest.post().uri("/invites").exchange().expectStatus().isForbidden();
         // The invites live on the profile page. The old address only passes the owner on to it.
         user.get().uri("/invites").exchange().expectStatus().is3xxRedirection();
+    }
+
+    @Test
+    void privateRecipesAreHiddenFromGuests() {
+        CreateRecipeRequest request = new CreateRecipeRequest("Secret Porridge", 1, 5, "Stir.",
+                Set.of(), null, null, Language.EN, Set.of("private"), List.of());
+        Long id = user.post().uri("/api/recipes").contentType(MediaType.APPLICATION_JSON).body(request)
+                .exchange().expectStatus().isCreated()
+                .expectBody(RecipeDto.class).returnResult().getResponseBody().id();
+
+        guest.get().uri("/api/recipes/" + id).exchange().expectStatus().isNotFound();
+        guest.get().uri("/recipes/" + id).exchange().expectStatus().isNotFound();
+        guest.get().uri("/api/recipes?q=Secret").exchange().expectBody(String.class)
+                .value(body -> assertFalse(body.contains("Secret Porridge")));
+        guest.get().uri("/api/categories").exchange().expectBody(String.class)
+                .value(body -> assertFalse(body.contains("private")));
+        guest.post().uri("/recipes/" + id + "/comments?body=hi").exchange().expectStatus().isNotFound();
+
+        user.get().uri("/api/recipes/" + id).exchange().expectStatus().isOk();
+        user.get().uri("/api/recipes?q=Secret").exchange().expectBody(String.class)
+                .value(body -> assertTrue(body.contains("Secret Porridge")));
     }
 }

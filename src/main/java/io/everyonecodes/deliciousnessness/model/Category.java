@@ -11,6 +11,9 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Category {
 
+    // Recipes in this category are seen only by the owner. Guests never see them or the category.
+    public static final String PRIVATE = "private";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

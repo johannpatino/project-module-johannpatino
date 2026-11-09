@@ -1,5 +1,6 @@
 package io.everyonecodes.deliciousnessness.service;
 
+import io.everyonecodes.deliciousnessness.controller.AccessAdvice;
 import io.everyonecodes.deliciousnessness.dto.CategoryDto;
 import io.everyonecodes.deliciousnessness.dto.CategoryUsageDto;
 import io.everyonecodes.deliciousnessness.model.Category;
@@ -77,7 +78,10 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryDto> findAll() {
-        return categoryRepository.findAllByOrderByNameAsc();
+        List<CategoryDto> all = categoryRepository.findAllByOrderByNameAsc();
+        return AccessAdvice.ownerIsViewing() ? all : all.stream()
+                .filter(category -> !Category.PRIVATE.equalsIgnoreCase(category.name()))
+                .toList();
     }
 
     // The id of a category by name, without creating it. Empty when there is no such category,

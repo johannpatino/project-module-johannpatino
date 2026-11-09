@@ -1,5 +1,6 @@
 package io.everyonecodes.deliciousnessness.service;
 
+import io.everyonecodes.deliciousnessness.controller.AccessAdvice;
 import io.everyonecodes.deliciousnessness.dto.CommentDto;
 import io.everyonecodes.deliciousnessness.model.AppUser;
 import io.everyonecodes.deliciousnessness.model.Comment;
@@ -75,6 +76,7 @@ public class CommentService {
         AppUser author = users.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN));
         var recipe = recipes.findById(recipeId)
+                .filter(r -> !r.isPrivate() || AccessAdvice.ownerIsViewing())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe not found"));
 
         Comment repliedTo = null;
