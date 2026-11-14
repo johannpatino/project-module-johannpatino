@@ -81,7 +81,7 @@ public class SecurityConfig {
                                 "/robots.txt").permitAll()
                         // Guests can look at recipes, search and filter. Nothing else.
                         .requestMatchers(HttpMethod.GET,
-                                "/recipes", "/recipes/fragment", "/recipes/{id:\\d+}",
+                                "/recipes", "/recipes/fragment", "/recipes/{id:\\d+}", "/images/{id:\\d+}",
                                 "/api/recipes", "/api/recipes/{id:\\d+}",
                                 "/api/categories", "/api/ingredients/autocomplete")
                         .hasAnyRole("USER", "GUEST")

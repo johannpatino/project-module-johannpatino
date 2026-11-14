@@ -33,8 +33,6 @@
                : |${nutrition.completeDishes()} of ${#lists.size(nutrition.dishes())} counted in full. The rest are missing some ingredients, so the real values are a bit higher.|">
             Everything is counted in full.</p>
 
-        <p class="nutr-note">A planned serving counts as 0.8 for Ela and 1.2 for Johann.</p>
-
         <p class="nutr-note" th:if="${nutrition.unassignedDishes() > 0}">
             Some dishes have no person, so they don't count for anyone.
         </p>

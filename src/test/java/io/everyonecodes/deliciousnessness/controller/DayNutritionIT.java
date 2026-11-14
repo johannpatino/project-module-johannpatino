@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-// The planner's day: Ela eats 0.8 of a planned serving, Johann 1.2, and extras are added on top.
+// The planner's day: each person eats one planned serving per card, and extras are added on top.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class DayNutritionIT {
@@ -77,8 +77,8 @@ class DayNutritionIT {
     @Test
     void eachPersonEatsTheirShareAndUnassignedCountsForNobody() {
         DayNutritionDto day = nutrition.forDay(weekId, DAY);
-        assertEquals("80", day.rows().get(0).ela());
-        assertEquals("120", day.rows().get(0).johann());
+        assertEquals("100", day.rows().get(0).ela());
+        assertEquals("100", day.rows().get(0).johann());
         assertEquals(1, day.unassignedDishes());
     }
 
@@ -90,9 +90,9 @@ class DayNutritionIT {
         assertTrue(html.contains("Chips"));
 
         DayNutritionDto day = nutrition.forDay(weekId, DAY);
-        // Ela: 80 planned + 2 servings x 0.8 x 100 + 250 chips. Johann: 120 planned + 108 banana, no share.
-        assertEquals("490", day.rows().get(0).ela());
-        assertEquals("228", day.rows().get(0).johann());
+        // Ela: 100 planned + 2 servings x 100 + 250 chips. Johann: 100 planned + 108 banana.
+        assertEquals("550", day.rows().get(0).ela());
+        assertEquals("208", day.rows().get(0).johann());
     }
 
     @Test

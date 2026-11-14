@@ -186,10 +186,17 @@
         </label>
 
         <div class="field-row">
-            <label class="field">
-                <span>Image URL</span>
-                <input type="url" th:field="*{imageUrl}" placeholder="https://...">
-            </label>
+            <div class="field">
+                <label for="imageUrl" class="field-label">Image URL</label>
+                <div class="image-input">
+                    <!-- text, not url: an uploaded picture's link is /images/{id}. The server checks the link. -->
+                    <input type="text" inputmode="url" th:field="*{imageUrl}" placeholder="https://...">
+                    <label class="btn image-upload">Upload
+                        <input type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                    </label>
+                </div>
+                <small class="image-upload-status" aria-live="polite"></small>
+            </div>
             <label class="field">
                 <span>Source URL</span>
                 <input type="url" th:field="*{sourceUrl}" placeholder="https://original-recipe-website.com">

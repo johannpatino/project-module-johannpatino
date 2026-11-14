@@ -62,8 +62,8 @@ public class NutritionService {
                 counted.gaps());
     }
 
-    // The planner's day, for Ela and Johann. A planned card is one serving, and each person eats their own
-    // share of it (PlannerPerson.portion). Extras come on top: a dish by its servings (with the same share),
+    // The planner's day, for Ela and Johann. A planned card is one serving, eaten by the person whose column
+    // it sits in. Extras come on top: a dish by its servings,
     // an ingredient by its amount, a custom snack as typed. Cards with no person are listed but count for nobody.
     @Transactional(readOnly = true)
     public DayNutritionDto forDay(Long weekId, DayOfWeek day) {
@@ -80,8 +80,7 @@ public class NutritionService {
 
             Counted counted = counted(countedByRecipe, card.getRecipe().getId());
             PlannerPerson person = card.getPerson();
-            Map<Nutrient, Double> eaten = scaled(counted.total(),
-                    (person == null ? 1 : person.portion()) / counted.servings());
+            Map<Nutrient, Double> eaten = scaled(counted.total(), 1.0 / counted.servings());
             if (person == null) {
                 unassignedDishes++;
             } else {
@@ -101,7 +100,7 @@ public class NutritionService {
             String name;
             if (extra.getRecipe() != null) {
                 Counted counted = counted(countedByRecipe, extra.getRecipe().getId());
-                eaten = scaled(counted.total(), extra.getAmount() * person.portion() / counted.servings());
+                eaten = scaled(counted.total(), extra.getAmount() / counted.servings());
                 extraGaps = counted.gaps();
                 name = extra.getRecipe().getRecipeName() + " · " + plain(extra.getAmount())
                         + (extra.getAmount() == 1 ? " serving" : " servings");

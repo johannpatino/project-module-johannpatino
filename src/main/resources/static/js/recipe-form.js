@@ -311,3 +311,45 @@
         saveButton.disabled = false;
     });
 })();
+
+// Upload: shrinks the picture to at most 1600 px on its long side (a phone photo becomes a few hundred KB),
+// sends it, and puts its link in the Image URL box.
+(function () {
+    const fileInput = document.querySelector('.image-upload input[type="file"]');
+    if (!fileInput) return;
+
+    const MAX_SIDE = 1600;
+    const urlInput = document.getElementById('imageUrl');
+    const status = document.querySelector('.image-upload-status');
+    const csrf = document.querySelector('form[action="/recipes/save"] input[name="_csrf"]').value;
+
+    fileInput.addEventListener('change', async () => {
+        const file = fileInput.files[0];
+        fileInput.value = '';
+        if (!file) return;
+        show('Uploading…', false);
+        try {
+            const bitmap = await createImageBitmap(file);
+            const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(bitmap.width * scale);
+            canvas.height = Math.round(bitmap.height * scale);
+            canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+
+            const body = new FormData();
+            body.append('file', blob, 'picture.jpg');
+            const response = await fetch('/images', {method: 'POST', body, headers: {'X-CSRF-TOKEN': csrf}});
+            if (!response.ok) throw new Error();
+            urlInput.value = (await response.json()).url;
+            show('Uploaded. Save the recipe to keep it.', false);
+        } catch (e) {
+            show('That picture could not be uploaded. Try a JPEG, PNG or WebP file.', true);
+        }
+    });
+
+    function show(message, isError) {
+        status.textContent = message;
+        status.classList.toggle('is-error', isError);
+    }
+})();

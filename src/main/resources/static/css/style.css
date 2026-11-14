@@ -560,8 +560,13 @@ img { max-width: 100%; display: block; }
     box-shadow: var(--shadow);
 }
 
-.field { display: grid; gap: 0.4rem; }
-.field > span { font-size: 0.88rem; font-weight: 600; }
+.field { display: grid; gap: 0.4rem; align-content: start; }
+.field > span, .field-label { font-size: 0.88rem; font-weight: 600; }
+.image-input { display: flex; gap: 0.5rem; }
+.image-input input { flex: 1; min-width: 0; }
+.image-upload { flex: none; cursor: pointer; }
+.image-upload-status { color: var(--ink-soft); }
+.image-upload-status.is-error { color: var(--danger); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
 
 input[type="text"], input[type="email"], input[type="password"], input[type="url"], input[type="number"], select, textarea {

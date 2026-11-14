@@ -4,7 +4,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 // Recipe links end up in href and src attributes. Only http and https are allowed, so a
-// "javascript:" or "data:" link can never run in a visitor's browser.
+// "javascript:" or "data:" link can never run in a visitor's browser. A picture uploaded to this
+// site is the one relative link allowed: /images/{id}.
 public final class WebLinks {
 
     private WebLinks() {
@@ -13,6 +14,9 @@ public final class WebLinks {
     // Blank is fine: the link is optional.
     public static boolean isSafe(String link) {
         if (link == null || link.isBlank()) {
+            return true;
+        }
+        if (link.trim().matches("/images/\\d+")) {
             return true;
         }
         try {
